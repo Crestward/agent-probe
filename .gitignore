@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# uv
+.uv/
+uv.lock.local
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Test / cache
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Results: committed snapshots are tracked; local scratch runs are not
+evals/results/*.local
+evals/results/scratch/
+agent_probe.db
+*.sqlite
+
+# Node / dashboard
+node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
