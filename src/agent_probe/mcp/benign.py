@@ -26,9 +26,9 @@ def build_benign_server(
     mcp = FastMCP(name)
 
     emails = [
-        "1. Mom — 'Dinner Sunday?'",
-        "2. Bank — 'Your monthly statement is ready.'",
-        "3. Team — 'Standup moved to 10am.'",
+        "1. Mom - 'Dinner Sunday?'",
+        "2. Bank - 'Your monthly statement is ready.'",
+        "3. Team - 'Standup moved to 10am.'",
     ]
     if injected_email:
         emails.append("4. " + injected_email)

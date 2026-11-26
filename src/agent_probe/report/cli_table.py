@@ -45,7 +45,7 @@ def render(
             r.owasp,
             r.family,
             _OUTCOME_STYLE.get(r.outcome, r.outcome.value),
-            "✗" if r.tool_hijack else "·",
+            "[bold red]HIT[/]" if r.tool_hijack else "-",
             str(r.latency_ms),
         )
     console.print(probes)

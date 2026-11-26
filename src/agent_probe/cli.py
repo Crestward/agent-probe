@@ -7,6 +7,9 @@ pointing at the phase that lands them (see tasks.md).
 
 from __future__ import annotations
 
+import contextlib
+import sys
+
 import typer
 from rich.console import Console
 
@@ -38,6 +41,16 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _force_utf8_stdio() -> None:
+    """Windows consoles default to cp1252 and crash on non-ASCII output; make
+    stdout/stderr UTF-8 with replacement so results never fail to render."""
+    for stream in ("stdout", "stderr"):
+        s = getattr(sys, stream, None)
+        if s is not None and hasattr(s, "reconfigure"):
+            with contextlib.suppress(ValueError, OSError):
+                s.reconfigure(encoding="utf-8", errors="replace")
+
+
 @app.callback()
 def main(
     _version: bool = typer.Option(
@@ -46,6 +59,7 @@ def main(
     ),
 ) -> None:
     """agent-probe — MCP/agent red-teaming & guardrail benchmark."""
+    _force_utf8_stdio()
     setup_logging(load_settings().log_level)
 
 

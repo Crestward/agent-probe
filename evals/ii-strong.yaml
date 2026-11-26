@@ -1,0 +1,7 @@
+name: ii-strong
+description: >
+  Indirect injection using AgentDojo's "important_instructions" technique
+  (user-impersonation + prerequisite framing). Tests whether the research-backed
+  attack lands where naive injection did not.
+attacks:
+  - attacks/gold/ii-important-instructions-001.yaml
