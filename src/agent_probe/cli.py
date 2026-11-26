@@ -111,10 +111,17 @@ def run(
     metrics = score(results)
     out_path = Path("evals/results") / f"{run_id}.jsonl"
     write_results(out_path, results)
+    from agent_probe.store import write_sqlite
+
+    db_path = Path("evals/results") / "probes.db"
+    write_sqlite(db_path, results)
 
     model = results[0].model if results else "?"
     render(metrics, results, provider, model, console=console)
-    console.print(f"\nresults written to [cyan]{out_path}[/]  (run_id={run_id})")
+    console.print(
+        f"\nresults written to [cyan]{out_path}[/]  ·  sqlite [cyan]{db_path}[/]  "
+        f"(run_id={run_id})"
+    )
 
 
 @app.command()
@@ -123,7 +130,16 @@ def report(
     format: str = typer.Option("md", help="md | json."),
 ) -> None:
     """Render a results table (Markdown for the README, or JSON)."""
-    _stub("report", "Phase 2")
+    from agent_probe.report.markdown import render_markdown
+    from agent_probe.scoring import score
+    from agent_probe.store import read_results
+
+    rows = read_results(results)
+    if format == "json":
+        console.print_json(score(rows).model_dump_json())
+    else:
+        # print() not print_json: Rich must not reinterpret the Markdown markup.
+        print(render_markdown(rows))
 
 
 @app.command()
@@ -140,9 +156,25 @@ def gate(
 @app.command("list")
 def list_attacks(
     owasp: str = typer.Option(None, help="Filter by OWASP id, e.g. LLM03."),
+    family: str = typer.Option(None, help="Filter by family, e.g. mcp_tool_shadowing."),
+    directory: str = typer.Option("attacks/gold", help="Catalog directory to browse."),
 ) -> None:
     """Browse the attack catalog."""
-    _stub("list", "Phase 2")
+    from rich.table import Table
+
+    from agent_probe.attacks.spec import load_catalog
+
+    attacks = load_catalog(directory, owasp=owasp, family=family)
+    table = Table(title=f"Attack catalog ({len(attacks)})", title_justify="left",
+                  header_style="bold")
+    for col in ("id", "family", "OWASP", "ATLAS", "channel", "sev", "technique"):
+        table.add_column(col)
+    for a in attacks:
+        table.add_row(
+            a.id, a.family, a.owasp, a.atlas or "-", a.channel, a.severity,
+            a.technique or "-",
+        )
+    console.print(table)
 
 
 if __name__ == "__main__":

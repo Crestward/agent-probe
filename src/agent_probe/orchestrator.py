@@ -21,10 +21,12 @@ import yaml
 from agent_probe.agent.loop import Agent
 from agent_probe.attacks.spec import load_attack
 from agent_probe.judge.rules import RuleJudge
-from agent_probe.mcp.benign import build_benign_server
+from agent_probe.mcp.benign import CHANNELS, build_benign_server
 from agent_probe.mcp.harness import MCPHarness
 from agent_probe.mcp.indirect import build_indirect_injection_server
 from agent_probe.mcp.poisoned import build_poisoned_server
+from agent_probe.mcp.rugpull import build_rugpull_server
+from agent_probe.mcp.shadow import build_shadow_server
 from agent_probe.models import AttackSpec, ProbeResult
 from agent_probe.providers.base import Provider
 
@@ -32,12 +34,29 @@ MAX_OUTPUT_CHARS = 500
 
 
 def _build_server(attack: AttackSpec):
-    """Pick the target server for an attack. Phase 1 handles tool poisoning;
-    later families (shadowing, rug-pull, indirect injection) extend this."""
+    """Pick the target server for an attack, keyed on family (+ channel).
+
+    - MCP triad: poisoning (payload in a tool description), shadowing (payload
+      redefines a trusted tool), rug-pull (tool mutates after approval).
+    - Indirect injection: payload planted in the retrieval `channel`.
+    - Everything else (excessive agency, sensitive-info disclosure, jailbreak
+      carriers whose payload rides the task) runs against the plain benign server.
+    """
+    payload = attack.payload or ""
     if attack.family == "mcp_tool_poisoning":
-        return build_poisoned_server(attack.payload or "")
-    if attack.family == "indirect_prompt_injection":
-        return build_indirect_injection_server(attack.payload or "")
+        return build_poisoned_server(payload)
+    if attack.family == "mcp_tool_shadowing":
+        return build_shadow_server(payload)
+    if attack.family == "mcp_rug_pull":
+        return build_rugpull_server(payload)
+    # Indirect injection, and jailbreak carriers delivered through a retrieval
+    # surface, both plant the payload in their channel.
+    if attack.family in ("indirect_prompt_injection", "jailbreak_carrier") and (
+        attack.channel in CHANNELS
+    ):
+        return build_indirect_injection_server(payload, channel=attack.channel)
+    # Excessive agency (task-only, no injection) and sensitive-info disclosure
+    # (payload rides the user task) run against the plain benign toolset.
     return build_benign_server()
 
 

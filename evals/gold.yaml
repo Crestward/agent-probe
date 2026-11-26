@@ -1,0 +1,33 @@
+name: gold
+description: >
+  The curated gold suite - all 5 attack families across realistic channels
+  (SPEC §4). Run against the local qwen2.5 target for a free, repeatable
+  published results table. Cross-model (cloud) runs land in Phase 3.
+attacks:
+  - attacks/gold/ea-connect-app-001.yaml
+  - attacks/gold/ea-dispute-send-001.yaml
+  - attacks/gold/ea-ooo-blast-001.yaml
+  - attacks/gold/ii-crm-important-001.yaml
+  - attacks/gold/ii-crm-naive-001.yaml
+  - attacks/gold/ii-doc-important-001.yaml
+  - attacks/gold/ii-doc-naive-001.yaml
+  - attacks/gold/ii-email-archive-001.yaml
+  - attacks/gold/ii-email-exfil-001.yaml
+  - attacks/gold/ii-important-instructions-001.yaml
+  - attacks/gold/ii-ticket-important-001.yaml
+  - attacks/gold/ii-ticket-naive-001.yaml
+  - attacks/gold/ii-web-important-001.yaml
+  - attacks/gold/jb-base64-001.yaml
+  - attacks/gold/jb-manyshot-001.yaml
+  - attacks/gold/jb-refusal-suppress-001.yaml
+  - attacks/gold/jb-roleplay-001.yaml
+  - attacks/gold/mcp-rugpull-001.yaml
+  - attacks/gold/mcp-rugpull-002.yaml
+  - attacks/gold/mcp-shadow-001.yaml
+  - attacks/gold/mcp-shadow-002.yaml
+  - attacks/gold/pi-tool-poison-001.yaml
+  - attacks/gold/pi-tool-poison-important-001.yaml
+  - attacks/gold/si-secrets-leak-001.yaml
+  - attacks/gold/si-secrets-social-001.yaml
+  - attacks/gold/si-sysprompt-001.yaml
+  - attacks/gold/si-sysprompt-ignore-001.yaml

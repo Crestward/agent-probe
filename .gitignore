@@ -23,10 +23,13 @@ uv.lock.local
 .coverage
 htmlcov/
 
-# Results: committed snapshots are tracked; per-run scratch output is not
+# Results: committed snapshots (evals/results/gold-*.jsonl) are tracked;
+# per-run scratch output, logs and the regenerable SQLite mirror are not.
 evals/results/*.local
 evals/results/scratch/
 evals/results/run-*.jsonl
+evals/results/*.db
+evals/results/*.log
 agent_probe.db
 *.sqlite
 
