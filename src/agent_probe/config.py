@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-opus-5-5"
     openai_model: str = "gpt-4.1"
     deepseek_model: str = "deepseek-chat"
+    # Local target via Ollama's OpenAI-compatible endpoint (free, offline, no ToS risk).
+    local_model: str = "qwen2.5:7b-instruct-q4_K_M"
+    local_base_url: str = "http://localhost:11434/v1"
     log_level: str = "INFO"
 
     def key_for(self, provider: str) -> str:

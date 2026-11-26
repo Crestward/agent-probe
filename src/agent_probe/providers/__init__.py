@@ -8,8 +8,9 @@ from __future__ import annotations
 from agent_probe.config import Settings
 from agent_probe.providers.anthropic import AnthropicProvider
 from agent_probe.providers.base import Provider
+from agent_probe.providers.openai_compatible import OpenAICompatibleProvider
 
-__all__ = ["Provider", "AnthropicProvider", "get_provider"]
+__all__ = ["Provider", "AnthropicProvider", "OpenAICompatibleProvider", "get_provider"]
 
 _PHASE_3 = {"openai", "deepseek"}
 
@@ -26,6 +27,17 @@ def get_provider(
             model=model or settings.anthropic_model,
             system=system,
         )
+    if name == "local":
+        # Ollama's OpenAI-compatible endpoint: free, offline, no ToS/ban risk.
+        return OpenAICompatibleProvider(
+            name="local",
+            model=model or settings.local_model,
+            api_key="ollama",
+            base_url=settings.local_base_url,
+            system=system,
+        )
     if name in _PHASE_3:
         raise ValueError(f"provider '{name}' is not wired yet — lands in Phase 3 (see tasks.md).")
-    raise ValueError(f"unknown provider '{name}'. Options: anthropic (openai/deepseek in Phase 3).")
+    raise ValueError(
+        f"unknown provider '{name}'. Options: anthropic, local (openai/deepseek in Phase 3)."
+    )
