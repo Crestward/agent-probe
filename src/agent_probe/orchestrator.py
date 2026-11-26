@@ -23,6 +23,7 @@ from agent_probe.attacks.spec import load_attack
 from agent_probe.judge.rules import RuleJudge
 from agent_probe.mcp.benign import build_benign_server
 from agent_probe.mcp.harness import MCPHarness
+from agent_probe.mcp.indirect import build_indirect_injection_server
 from agent_probe.mcp.poisoned import build_poisoned_server
 from agent_probe.models import AttackSpec, ProbeResult
 from agent_probe.providers.base import Provider
@@ -35,6 +36,8 @@ def _build_server(attack: AttackSpec):
     later families (shadowing, rug-pull, indirect injection) extend this."""
     if attack.family == "mcp_tool_poisoning":
         return build_poisoned_server(attack.payload or "")
+    if attack.family == "indirect_prompt_injection":
+        return build_indirect_injection_server(attack.payload or "")
     return build_benign_server()
 
 

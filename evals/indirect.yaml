@@ -1,0 +1,8 @@
+name: indirect
+description: >
+  One indirect prompt-injection probe — the payload is planted in an email the
+  agent reads while summarizing the inbox. Used to validate the SUCCESS path
+  against a real (local) model.
+attacks:
+  - attacks/gold/ii-email-exfil-001.yaml
+  - attacks/gold/ii-email-archive-001.yaml
