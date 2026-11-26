@@ -53,6 +53,11 @@ def main(
 def run(
     suite: str = typer.Argument(..., help="Path to an eval suite YAML (e.g. evals/smoke.yaml)."),
     provider: str = typer.Option("anthropic", help="anthropic | openai | deepseek | local."),
+    model: str = typer.Option(
+        None,
+        "--model",
+        help="Override the target model, e.g. claude-haiku-4-5 / claude-sonnet-5-5.",
+    ),
     compare: str = typer.Option(
         None, help="Comma-separated providers to run the same suite against, e.g. "
         "anthropic,openai,deepseek.",
@@ -78,7 +83,7 @@ def run(
     run_id = new_run_id()
 
     def make_provider():
-        return get_provider(provider, settings, system=DEFAULT_SYSTEM)
+        return get_provider(provider, settings, system=DEFAULT_SYSTEM, model=model)
 
     try:
         results = asyncio.run(run_suite(suite, make_provider, run_id))

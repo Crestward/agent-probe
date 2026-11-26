@@ -14,11 +14,16 @@ __all__ = ["Provider", "AnthropicProvider", "get_provider"]
 _PHASE_3 = {"openai", "deepseek"}
 
 
-def get_provider(name: str, settings: Settings, system: str | None = None) -> Provider:
+def get_provider(
+    name: str,
+    settings: Settings,
+    system: str | None = None,
+    model: str | None = None,
+) -> Provider:
     if name == "anthropic":
         return AnthropicProvider(
             api_key=settings.require_key_for("anthropic"),
-            model=settings.anthropic_model,
+            model=model or settings.anthropic_model,
             system=system,
         )
     if name in _PHASE_3:
