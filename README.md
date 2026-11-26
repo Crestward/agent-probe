@@ -12,6 +12,12 @@ for what's deliberately out of v1.0 scope.
 Most "AI security" projects are a prompt-injection demo in a notebook. This one is a
 **measurement instrument**: it treats defence as a number you can regression-test.
 
+**▶ Live dashboard:** <https://claude.ai/artifact/32w8WqpHb8XJL51jWBG4wC> — interactive
+scoreboard, Defence Delta, outcome heatmap, and a **trace explorer** (click any probe
+to see the exact tool calls that led to the breach). _(Private preview; built by
+`dashboard/build.py` from the committed snapshots. A public GitHub Pages deploy
+follows once the repo is pushed.)_
+
 ## Status
 
 | Phase | What | State |

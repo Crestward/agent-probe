@@ -1,0 +1,430 @@
+<title>agent-probe benchmark</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: sticky console header → scoreboard → defence delta → heatmap → trace explorer (two-pane, stacks on phone). */
+  :root {
+    --bg: #f4f5f8; --panel: #ffffff; --panel-2: #eef0f5; --line: #d9dce4;
+    --fg: #1a1d26; --muted: #5b6072; --faint: #878da0;
+    --accent: #3b5bdb; --accent-soft: #e7ecfd;
+    --danger: #d6336c; --safe: #2f9e63; --clean: #3b7fd4; --warn: #c2820b; --guard: #0f9488;
+    --shadow: 0 1px 2px rgba(20,24,40,.06), 0 8px 24px rgba(20,24,40,.06);
+    --radius: 12px;
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f16; --panel: #161925; --panel-2: #1e2230; --line: #2b3042;
+      --fg: #e8eaf2; --muted: #9aa0b4; --faint: #6b7189;
+      --accent: #7c93f5; --accent-soft: #1c2440;
+      --danger: #f06595; --safe: #51cf86; --clean: #68a8f0; --warn: #e6b450; --guard: #2dd4bf;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f16; --panel: #161925; --panel-2: #1e2230; --line: #2b3042;
+    --fg: #e8eaf2; --muted: #9aa0b4; --faint: #6b7189;
+    --accent: #7c93f5; --accent-soft: #1c2440;
+    --danger: #f06595; --safe: #51cf86; --clean: #68a8f0; --warn: #e6b450; --guard: #2dd4bf;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.5; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 0 56px; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; letter-spacing: -.01em; }
+  .mono { font-family: var(--mono); }
+  .nums { font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+
+  /* header */
+  header {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: color-mix(in oklab, var(--bg) 86%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .bar { max-width: 1120px; margin: 0 auto; padding: 12px 16px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .brand b { font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; }
+  .brand .dot { color: var(--danger); }
+  .brand span { color: var(--muted); font-size: .82rem; }
+  .spacer { flex: 1 1 auto; }
+  .chip { font-family: var(--mono); font-size: .74rem; color: var(--muted);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px 10px; white-space: nowrap; }
+  .toggle { font-family: var(--mono); font-size: .74rem; cursor: pointer; color: var(--fg);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+  .toggle:hover { border-color: var(--accent); }
+
+  section { margin-top: 30px; }
+  .eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--faint); margin-bottom: 12px; display: flex;
+    align-items: center; gap: 10px; }
+  .eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); }
+
+  /* scoreboard */
+  .hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .tile { padding: 18px 20px; position: relative; overflow: hidden; }
+  .tile .k { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-size: clamp(2.2rem, 7vw, 3rem); font-weight: 700; line-height: 1.05;
+    margin-top: 6px; letter-spacing: -.03em; }
+  .tile .s { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+  .tile.rail-danger { border-left: 4px solid var(--danger); }
+  .tile.rail-safe { border-left: 4px solid var(--safe); }
+  .tile.rail-accent { border-left: 4px solid var(--accent); }
+  .v.danger { color: var(--danger); } .v.safe { color: var(--safe); } .v.accent { color: var(--accent); }
+
+  .ministats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+  .mini { padding: 14px 16px; }
+  .mini .k { font-family: var(--mono); font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--muted); }
+  .mini .v { font-size: 1.5rem; font-weight: 600; margin-top: 2px; }
+
+  /* delta bars */
+  .deltawrap { padding: 20px; }
+  .cmp { display: grid; grid-template-columns: 90px 1fr 66px; align-items: center; gap: 12px;
+    margin: 12px 0; }
+  .cmp .lab { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+  .track { height: 22px; background: var(--panel-2); border-radius: 6px; overflow: hidden;
+    border: 1px solid var(--line); }
+  .fill { height: 100%; border-radius: 5px 0 0 5px; }
+  .fill.base { background: var(--danger); }
+  .fill.guard { background: var(--safe); }
+  .cmp .val { font-family: var(--mono); font-size: .85rem; text-align: right; font-weight: 600; }
+  .note { font-size: .82rem; color: var(--muted); margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--line); }
+  .note b { color: var(--fg); font-weight: 600; }
+
+  /* heatmap table */
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 560px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--faint); font-weight: 500; }
+  td.fam { font-weight: 500; }
+  td.owasp-tag { font-family: var(--mono); font-size: .76rem; color: var(--muted); }
+  .asrcell { font-family: var(--mono); font-weight: 600; text-align: center; border-radius: 6px;
+    padding: 5px 8px; min-width: 56px; display: inline-block; }
+  .mixbar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; min-width: 90px;
+    border: 1px solid var(--line); }
+  .mixbar i { display: block; height: 100%; }
+  .mx-success { background: var(--danger); } .mx-refusal { background: var(--safe); }
+  .mx-clean_completion { background: var(--clean); } .mx-error { background: var(--warn); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .76rem; color: var(--muted);
+    margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  /* trace explorer */
+  .explorer { display: grid; grid-template-columns: 340px 1fr; gap: 14px; align-items: start; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filters input, .filters select { font-family: var(--mono); font-size: .76rem; color: var(--fg);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+  .filters input { flex: 1 1 120px; min-width: 0; }
+  .list { max-height: 560px; overflow-y: auto; border-radius: var(--radius); }
+  .row { width: 100%; text-align: left; cursor: pointer; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font: inherit; color: inherit; }
+  .row:hover { border-color: var(--accent); }
+  .row[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .row .rid { font-family: var(--mono); font-size: .78rem; font-weight: 600; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .rfam { font-size: .72rem; color: var(--muted); }
+  .pills { display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
+  .pill { font-family: var(--mono); font-size: .64rem; font-weight: 600; padding: 2px 7px;
+    border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  .pill.success { background: color-mix(in oklab, var(--danger) 18%, transparent); color: var(--danger);
+    border: 1px solid color-mix(in oklab, var(--danger) 40%, transparent); }
+  .pill.refusal { background: color-mix(in oklab, var(--safe) 18%, transparent); color: var(--safe);
+    border: 1px solid color-mix(in oklab, var(--safe) 40%, transparent); }
+  .pill.clean_completion { background: color-mix(in oklab, var(--clean) 18%, transparent); color: var(--clean);
+    border: 1px solid color-mix(in oklab, var(--clean) 40%, transparent); }
+  .pill.error { background: color-mix(in oklab, var(--warn) 18%, transparent); color: var(--warn);
+    border: 1px solid color-mix(in oklab, var(--warn) 40%, transparent); }
+
+  .detail { padding: 18px 20px; min-height: 300px; }
+  .detail .dh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .detail .dh .id { font-family: var(--mono); font-weight: 700; font-size: 1rem; }
+  .meta-grid { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    margin: 14px 0 6px; }
+  .seg button { font-family: var(--mono); font-size: .76rem; padding: 6px 14px; cursor: pointer;
+    background: var(--panel); color: var(--muted); border: none; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .task { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; font-size: .85rem; margin: 10px 0; }
+  .task .tl { font-family: var(--mono); font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--faint); display: block; margin-bottom: 4px; }
+  .step { border-left: 2px solid var(--line); padding: 2px 0 2px 14px; margin: 10px 0; position: relative; }
+  .step::before { content: ""; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--accent); }
+  .step.blocked::before { background: var(--safe); }
+  .step .nm { font-family: var(--mono); font-weight: 600; font-size: .84rem; }
+  .step .blk { font-family: var(--mono); font-size: .64rem; color: var(--safe); font-weight: 600;
+    border: 1px solid color-mix(in oklab, var(--safe) 40%, transparent); border-radius: 999px;
+    padding: 1px 7px; margin-left: 8px; }
+  .kv { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-top: 3px;
+    white-space: pre-wrap; word-break: break-word; }
+  .kv b { color: var(--fg); font-weight: 600; }
+  .answer { margin-top: 14px; }
+  .answer .tl { font-family: var(--mono); font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--faint); }
+  .answer p { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; font-size: .86rem; margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
+  .verdict { margin-top: 12px; font-size: .82rem; color: var(--muted); }
+  .empty { color: var(--faint); font-size: .9rem; display: grid; place-items: center; min-height: 260px;
+    text-align: center; }
+
+  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: .78rem; color: var(--faint); }
+  footer code { font-family: var(--mono); background: var(--panel-2); padding: 1px 6px; border-radius: 4px; }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; }
+    .ministats { grid-template-columns: repeat(2, 1fr); }
+    .explorer { grid-template-columns: 1fr; }
+    .list { max-height: 320px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <b>agent&#8209;probe<span class="dot">.</span></b>
+      <span>MCP / agent red&#8209;team &amp; guardrail benchmark</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="chip" id="modelchip">model</span>
+    <button class="toggle" id="themeBtn" type="button">theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="eyebrow">Scoreboard &middot; same suite, undefended vs guarded</div>
+    <div class="hero">
+      <div class="panel tile rail-danger">
+        <div class="k">Baseline ASR</div>
+        <div class="v danger nums" id="baseAsr">–</div>
+        <div class="s">attack success, no guardrail</div>
+      </div>
+      <div class="panel tile rail-safe">
+        <div class="k">Guarded ASR</div>
+        <div class="v safe nums" id="guardAsr">–</div>
+        <div class="s">with the I/O guardrail on</div>
+      </div>
+      <div class="panel tile rail-accent">
+        <div class="k">Defence Delta</div>
+        <div class="v accent nums" id="delta">–</div>
+        <div class="s" id="deltaSub">points of ASR removed</div>
+      </div>
+    </div>
+    <div class="ministats" id="ministats"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Defence Delta &middot; ASR by attack family</div>
+    <div class="panel deltawrap" id="deltaBars"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Outcome heatmap &middot; families &times; outcome, coloured by ASR</div>
+    <div class="panel tablewrap">
+      <table id="heat"><thead><tr>
+        <th>Family</th><th>OWASP</th><th>n</th>
+        <th>Baseline ASR</th><th>Guarded ASR</th><th>Outcome mix (baseline)</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+    <div class="legend">
+      <span><i class="mx-success"></i>success (attack landed)</span>
+      <span><i class="mx-refusal"></i>refusal</span>
+      <span><i class="mx-clean_completion"></i>clean completion</span>
+      <span><i class="mx-error"></i>error</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Trace explorer &middot; click a probe to see what the agent actually did</div>
+    <div class="explorer">
+      <div>
+        <div class="filters">
+          <input id="search" type="text" placeholder="search id / family…" aria-label="search probes">
+          <select id="famFilter" aria-label="filter by family"><option value="">all families</option></select>
+          <select id="outFilter" aria-label="filter by baseline outcome">
+            <option value="">all outcomes</option>
+            <option value="success">success</option>
+            <option value="refusal">refusal</option>
+            <option value="clean_completion">clean</option>
+          </select>
+        </div>
+        <div class="list" id="list"></div>
+      </div>
+      <div class="panel detail" id="detail">
+        <div class="empty">Select a probe to inspect its trace — task, tool calls, and final answer.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Target: <code id="footModel">qwen2.5</code> (local, synthetic). Every number is computed from
+    committed result snapshots by <code>dashboard/build.py</code>. Cross-model comparison
+    (Claude / GPT / DeepSeek) is deferred. 0% guarded is measured against this fixed,
+    non-adaptive suite — the egress allow-list does the heavy lifting.
+  </footer>
+</main>
+
+<script>const DATA = /*__DATA__*/;</script>
+<script>
+(function () {
+  "use strict";
+  var pct = function (x) { return (x * 100).toFixed(1) + "%"; };
+  var el = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+
+  /* theme */
+  var root = document.documentElement, tb = el("themeBtn");
+  function sysDark() { return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; }
+  function curDark() { var t = root.getAttribute("data-theme"); return t ? t === "dark" : sysDark(); }
+  function setTheme(d) { root.setAttribute("data-theme", d ? "dark" : "light");
+    tb.textContent = d ? "◐ dark" : "◑ light";
+    try { localStorage.setItem("ap-theme", d ? "dark" : "light"); } catch (e) {} }
+  try { var sv = localStorage.getItem("ap-theme"); if (sv) root.setAttribute("data-theme", sv); } catch (e) {}
+  tb.textContent = curDark() ? "◐ dark" : "◑ light";
+  tb.addEventListener("click", function () { setTheme(!curDark()); });
+
+  /* scoreboard */
+  var sb = DATA.scoreboard;
+  el("modelchip").textContent = DATA.meta.model;
+  el("footModel").textContent = DATA.meta.model;
+  el("baseAsr").textContent = pct(sb.baseline.asr);
+  el("guardAsr").textContent = pct(sb.guarded.asr);
+  el("delta").textContent = "−" + sb.delta_pts + "pts";
+  el("deltaSub").textContent = pct(sb.baseline.asr) + " → " + pct(sb.guarded.asr) + " on " + DATA.meta.n + " attacks";
+
+  var ms = [
+    ["Refusal rate", pct(sb.baseline.rr)],
+    ["Clean completion", pct(sb.baseline.clean)],
+    ["Tool-hijack rate", pct(sb.baseline.hijack)],
+    ["Harm-weighted ASR", pct(sb.baseline.harm)]
+  ];
+  el("ministats").innerHTML = ms.map(function (m) {
+    return '<div class="panel mini"><div class="k">' + m[0] + '</div><div class="v nums">' + m[1] + '</div></div>';
+  }).join("");
+
+  /* delta bars per family */
+  var fams = DATA.families.slice().sort(function (a, b) { return b.base_asr - a.base_asr; });
+  el("deltaBars").innerHTML = fams.map(function (f) {
+    return '<div class="cmp"><div class="lab">' + esc(f.family.replace(/_/g, " ")) + '</div>' +
+      '<div><div class="track"><div class="fill base" style="width:' + (f.base_asr * 100) + '%"></div></div>' +
+      '<div class="track" style="margin-top:4px"><div class="fill guard" style="width:' + (f.guard_asr * 100) + '%"></div></div></div>' +
+      '<div class="val">' + pct(f.base_asr) + '<br><span style="color:var(--safe)">' + pct(f.guard_asr) + '</span></div></div>';
+  }).join("") +
+    '<div class="note"><b>Red</b> = baseline ASR, <b>green</b> = guarded ASR. The guardrail intervened on ' +
+    Math.round(sb.guard_pass_rate * DATA.meta.n < DATA.meta.n ? (DATA.meta.n - sb.guard_pass_rate * DATA.meta.n) : 0) +
+    ' of ' + DATA.meta.n + ' probes; ASR behind the filter was ' + pct(sb.asr_behind_filter) +
+    ' — what passed the filter, the model resisted on its own.</div>';
+
+  /* heatmap */
+  function asrColor(a) {
+    return "color-mix(in oklab, var(--safe), var(--danger) " + Math.round(a * 100) + "%)";
+  }
+  function asrText(a) { return a > 0.45 ? "#fff" : "var(--fg)"; }
+  function mix(o) {
+    var total = o.success + o.refusal + o.clean_completion + o.error || 1;
+    return ["success", "refusal", "clean_completion", "error"].map(function (k) {
+      return o[k] ? '<i class="mx-' + k + '" style="width:' + (o[k] / total * 100) + '%" title="' + k + ': ' + o[k] + '"></i>' : "";
+    }).join("");
+  }
+  var tb2 = document.querySelector("#heat tbody");
+  tb2.innerHTML = fams.map(function (f) {
+    return "<tr><td class='fam'>" + esc(f.family.replace(/_/g, " ")) + "</td>" +
+      "<td class='owasp-tag'>" + esc(f.owasp) + "</td><td class='nums'>" + f.n + "</td>" +
+      "<td><span class='asrcell' style='background:" + asrColor(f.base_asr) + ";color:" + asrText(f.base_asr) + "'>" + pct(f.base_asr) + "</span></td>" +
+      "<td><span class='asrcell' style='background:" + asrColor(f.guard_asr) + ";color:" + asrText(f.guard_asr) + "'>" + pct(f.guard_asr) + "</span></td>" +
+      "<td><div class='mixbar'>" + mix(f.base_outcomes) + "</div></td></tr>";
+  }).join("");
+
+  /* trace explorer */
+  var famSel = el("famFilter");
+  DATA.families.forEach(function (f) {
+    var o = document.createElement("option"); o.value = f.family;
+    o.textContent = f.family.replace(/_/g, " "); famSel.appendChild(o);
+  });
+  var selected = null, cfg = "base";
+
+  function listData() {
+    var q = el("search").value.toLowerCase(), ff = famSel.value, of = el("outFilter").value;
+    return DATA.probes.filter(function (p) {
+      if (ff && p.family !== ff) return false;
+      if (of && p.base.outcome !== of) return false;
+      if (q && (p.id + " " + p.family).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+  function pill(o) { return '<span class="pill ' + o + '">' + o.replace("_completion", "") + "</span>"; }
+  function renderList() {
+    var rows = listData();
+    el("list").innerHTML = rows.length ? rows.map(function (p) {
+      var g = p.guard ? pill(p.guard.outcome) : "";
+      return '<button class="row" data-id="' + p.id + '" aria-selected="' + (selected === p.id) + '">' +
+        '<span class="rid">' + esc(p.id) + '</span>' +
+        '<span class="pills">' + pill(p.base.outcome) + (g && p.guard.outcome !== p.base.outcome ? '<span style="color:var(--faint)">→</span>' + g : "") + '</span>' +
+        '<span class="rfam">' + esc(p.family.replace(/_/g, " ")) + " &middot; " + esc(p.owasp) + '</span></button>';
+    }).join("") : '<div class="empty" style="min-height:120px">no probes match</div>';
+    Array.prototype.forEach.call(el("list").querySelectorAll(".row"), function (b) {
+      b.addEventListener("click", function () { select(b.getAttribute("data-id")); });
+    });
+  }
+  function trace(p) { return cfg === "guard" && p.guard ? p.guard : p.base; }
+  function renderDetail() {
+    var p = DATA.probes.find(function (x) { return x.id === selected; });
+    if (!p) { el("detail").innerHTML = '<div class="empty">Select a probe to inspect its trace.</div>'; return; }
+    var t = trace(p), tr = t.trace || {};
+    var calls = (tr.tool_calls || []).map(function (c) {
+      var args = Object.keys(c.arguments || {}).map(function (k) {
+        return "<b>" + esc(k) + "</b>=" + esc(JSON.stringify(c.arguments[k])); }).join("  ");
+      return '<div class="step' + (c.blocked ? " blocked" : "") + '"><div class="nm">' + esc(c.name) +
+        (c.blocked ? '<span class="blk">blocked</span>' : "") + '</div>' +
+        (args ? '<div class="kv">' + args + '</div>' : "") +
+        '<div class="kv">→ ' + esc((c.output || "").slice(0, 320)) + '</div></div>';
+    }).join("") || '<div class="kv" style="margin-left:14px">no tool calls</div>';
+    var hasGuard = !!p.guard;
+    el("detail").innerHTML =
+      '<div class="dh"><span class="id">' + esc(p.id) + '</span>' + pill(t.outcome) +
+      (t.hijack ? ' <span class="pill success">tool&#8209;hijack</span>' : "") + '</div>' +
+      '<div class="meta-grid"><span class="chip">' + esc(p.family.replace(/_/g, " ")) + '</span>' +
+      '<span class="chip">' + esc(p.owasp) + '</span>' +
+      '<span class="chip">' + esc(p.atlas || "") + '</span>' +
+      '<span class="chip">sev: ' + esc(p.severity) + '</span>' +
+      (p.technique ? '<span class="chip">' + esc(p.technique) + '</span>' : "") + '</div>' +
+      '<div class="seg" role="group">' +
+      '<button data-cfg="base" aria-pressed="' + (cfg === "base") + '">baseline</button>' +
+      '<button data-cfg="guard" aria-pressed="' + (cfg === "guard") + '"' + (hasGuard ? "" : " disabled") + '>guarded</button></div>' +
+      '<div class="task"><span class="tl">user task</span>' + esc(tr.task || "") + '</div>' +
+      '<div>' + calls + '</div>' +
+      '<div class="answer"><span class="tl">final answer</span><p>' + (esc(tr.final_text) || "<span style='color:var(--faint)'>(empty)</span>") + '</p></div>' +
+      '<div class="verdict">judge: ' + esc(t.detail) + ' &middot; ' + (t.latency != null ? t.latency + " ms" : "") +
+      (cfg === "guard" && t.guard_blocked ? ' &middot; guardrail intervened' : "") + '</div>';
+    Array.prototype.forEach.call(el("detail").querySelectorAll(".seg button"), function (b) {
+      if (b.disabled) return;
+      b.addEventListener("click", function () { cfg = b.getAttribute("data-cfg"); renderDetail(); });
+    });
+  }
+  function select(id) { selected = id; renderList(); renderDetail(); }
+
+  ["search", "famFilter", "outFilter"].forEach(function (id) {
+    el(id).addEventListener("input", renderList);
+  });
+  renderList();
+})();
+</script>

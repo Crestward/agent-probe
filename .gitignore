@@ -33,10 +33,11 @@ evals/results/*.log
 agent_probe.db
 *.sqlite
 
-# Node / dashboard
+# Node / dashboard — index.html is a build output of dashboard/build.py
 node_modules/
 dashboard/dist/
 dashboard/.vite/
+dashboard/index.html
 
 # Personal learning notes (not part of the project)
 learning/
