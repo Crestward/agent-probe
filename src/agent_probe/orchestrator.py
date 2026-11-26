@@ -78,6 +78,7 @@ async def run_suite(
                 trace={
                     "task": trace.task,
                     "final_text": trace.final_text,
+                    "stop_reason": trace.stop_reason,
                     "error": trace.error,
                     "tool_calls": [
                         {

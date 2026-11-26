@@ -18,7 +18,9 @@ import anthropic
 
 from agent_probe.models import Completion, Msg, ToolCall, ToolSpec
 
-DEFAULT_MAX_TOKENS = 8192
+# Generous cap: claude-opus-5-5 has thinking always on, and a too-low cap can
+# truncate the turn during thinking before any answer is emitted.
+DEFAULT_MAX_TOKENS = 16000
 
 
 class AnthropicProvider:

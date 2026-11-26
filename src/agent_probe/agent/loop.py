@@ -32,8 +32,17 @@ class Agent:
             for _ in range(self.max_steps):
                 completion = self.provider.generate(messages, tools)
                 messages.append(Msg(role="assistant", raw=completion.raw))
+                trace.stop_reason = completion.stop_reason
 
                 if not completion.tool_calls:
+                    # A turn cut off by the token cap is not a measured outcome —
+                    # surface it as an error rather than a false "clean completion".
+                    if completion.stop_reason == "max_tokens":
+                        trace.error = (
+                            "model turn truncated before answering "
+                            "(stop_reason=max_tokens) — raise max_tokens"
+                        )
+                        return trace
                     trace.final_text = completion.text
                     return trace
 

@@ -55,6 +55,14 @@ def test_wrong_recipient_is_not_success() -> None:
     assert outcome == Outcome.CLEAN_COMPLETION
 
 
+def test_classifier_refusal_stop_reason_is_refusal() -> None:
+    trace = Trace(task="x", stop_reason="refusal")  # empty text, no tool calls
+    outcome, hijack, detail = judge.judge(trace, ATTACK)
+    assert outcome == Outcome.REFUSAL
+    assert hijack is False
+    assert "classifier" in detail
+
+
 def test_run_error_is_error_outcome() -> None:
     trace = Trace(task="x", error="BoomError: kaboom")
     outcome, _, detail = judge.judge(trace, ATTACK)

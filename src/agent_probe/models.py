@@ -137,6 +137,7 @@ class Trace:
     final_text: str = ""
     error: str | None = None
     halted: bool = False  # hit max_steps without a natural end_turn
+    stop_reason: str = ""  # stop_reason of the final model turn
 
 
 class ProbeResult(BaseModel):

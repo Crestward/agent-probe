@@ -23,9 +23,10 @@ uv.lock.local
 .coverage
 htmlcov/
 
-# Results: committed snapshots are tracked; local scratch runs are not
+# Results: committed snapshots are tracked; per-run scratch output is not
 evals/results/*.local
 evals/results/scratch/
+evals/results/run-*.jsonl
 agent_probe.db
 *.sqlite
 
@@ -33,6 +34,9 @@ agent_probe.db
 node_modules/
 dashboard/dist/
 dashboard/.vite/
+
+# Personal learning notes (not part of the project)
+learning/
 
 # OS / editor
 .DS_Store
