@@ -38,7 +38,10 @@ class Settings(BaseSettings):
 
     # --- Behaviour (AGENT_PROBE_ prefixed) -------------------------------------
     default_provider: str = "anthropic"
-    anthropic_model: str = "claude-opus-4-8"
+    # Default target model for the agent-under-test. claude-opus-5-5 is the current
+    # flagship; for high-volume probe runs set AGENT_PROBE_ANTHROPIC_MODEL to a cheaper
+    # model (e.g. claude-sonnet-5-5 / claude-haiku-4-5).
+    anthropic_model: str = "claude-opus-5-5"
     openai_model: str = "gpt-4.1"
     deepseek_model: str = "deepseek-chat"
     log_level: str = "INFO"

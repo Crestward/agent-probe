@@ -51,7 +51,7 @@ def main(
 
 @app.command()
 def run(
-    suite: str = typer.Argument(..., help="Path to an eval suite YAML (e.g. evals/gold.yaml)."),
+    suite: str = typer.Argument(..., help="Path to an eval suite YAML (e.g. evals/smoke.yaml)."),
     provider: str = typer.Option("anthropic", help="anthropic | openai | deepseek | local."),
     compare: str = typer.Option(
         None, help="Comma-separated providers to run the same suite against, e.g. "
@@ -59,7 +59,43 @@ def run(
     ),
 ) -> None:
     """Run an attack suite against a target agent and score it."""
-    _stub("run", "Phase 1 (single provider) / Phase 3 (--compare)")
+    import asyncio
+    from pathlib import Path
+
+    from agent_probe.agent.loop import DEFAULT_SYSTEM
+    from agent_probe.logging import new_run_id
+    from agent_probe.orchestrator import run_suite
+    from agent_probe.providers import get_provider
+    from agent_probe.report.cli_table import render
+    from agent_probe.scoring import score
+    from agent_probe.store import write_results
+
+    if compare:
+        console.print("[yellow]--compare[/] lands in Phase 3 — run a single --provider for now.")
+        raise typer.Exit(code=0)
+
+    settings = load_settings()
+    run_id = new_run_id()
+
+    def make_provider():
+        return get_provider(provider, settings, system=DEFAULT_SYSTEM)
+
+    try:
+        results = asyncio.run(run_suite(suite, make_provider, run_id))
+    except ValueError as e:  # unknown/unwired provider
+        console.print(f"[red]error:[/] {e}")
+        raise typer.Exit(code=2) from e
+    except RuntimeError as e:  # missing API key
+        console.print(f"[red]error:[/] {e}")
+        raise typer.Exit(code=2) from e
+
+    metrics = score(results)
+    out_path = Path("evals/results") / f"{run_id}.jsonl"
+    write_results(out_path, results)
+
+    model = results[0].model if results else "?"
+    render(metrics, results, provider, model, console=console)
+    console.print(f"\nresults written to [cyan]{out_path}[/]  (run_id={run_id})")
 
 
 @app.command()

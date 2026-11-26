@@ -1,0 +1,6 @@
+name: smoke
+description: >
+  Phase 1 vertical slice — a single MCP tool-poisoning attack against the target
+  agent. Produces one real ASR number end-to-end.
+attacks:
+  - attacks/gold/pi-tool-poison-001.yaml
