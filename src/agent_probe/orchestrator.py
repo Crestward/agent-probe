@@ -20,6 +20,7 @@ import yaml
 
 from agent_probe.agent.loop import Agent
 from agent_probe.attacks.spec import load_attack
+from agent_probe.guard.filter import IOFilter
 from agent_probe.judge.rules import RuleJudge
 from agent_probe.mcp.benign import CHANNELS, build_benign_server
 from agent_probe.mcp.harness import MCPHarness
@@ -64,6 +65,7 @@ async def run_suite(
     suite_path: str | Path,
     make_provider: Callable[[], Provider],
     run_id: str,
+    guarded: bool = False,
 ) -> list[ProbeResult]:
     suite = yaml.safe_load(Path(suite_path).read_text(encoding="utf-8"))
     suite_dir = Path(suite_path).parent
@@ -76,10 +78,11 @@ async def run_suite(
         attack = load_attack(attack_path)
         provider = make_provider()
         server = _build_server(attack)
+        guard = IOFilter() if guarded else None  # fresh per probe (counts interventions)
 
         start = time.perf_counter()
         async with MCPHarness(server) as harness:
-            trace = await Agent(provider, harness).run(attack.task)
+            trace = await Agent(provider, harness, guard=guard).run(attack.task)
         latency_ms = int((time.perf_counter() - start) * 1000)
 
         outcome, hijack, detail = judge.judge(trace, attack)
@@ -93,8 +96,10 @@ async def run_suite(
                 severity=attack.severity,
                 provider=provider.name,
                 model=provider.model,
+                config="guarded" if guarded else "baseline",
                 outcome=outcome,
                 tool_hijack=hijack,
+                guard_blocked=bool(guard and guard.interventions),
                 latency_ms=latency_ms,
                 judge_detail=detail,
                 trace={
@@ -107,6 +112,7 @@ async def run_suite(
                             "name": c.name,
                             "arguments": c.arguments,
                             "output": c.output[:MAX_OUTPUT_CHARS],
+                            "blocked": c.blocked,
                         }
                         for c in trace.executed_calls
                     ],

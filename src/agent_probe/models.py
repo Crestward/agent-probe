@@ -173,6 +173,7 @@ class ExecutedCall:
     name: str
     arguments: dict[str, Any]
     output: str
+    blocked: bool = False  # the guardrail intercepted this call before it took effect
 
 
 @dataclass
@@ -198,8 +199,22 @@ class ProbeResult(BaseModel):
     severity: str
     provider: str
     model: str
+    config: str = "baseline"  # "baseline" | "guarded" (SPEC §3 Defence Delta)
     outcome: Outcome
     tool_hijack: bool
+    guard_blocked: bool = False  # the guardrail intervened on this probe
     latency_ms: int
     judge_detail: str
     trace: dict[str, Any]
+
+
+class DefenceDelta(BaseModel):
+    """ASR before vs after the guardrail on the same suite (SPEC §3, the money metric)."""
+
+    group: str  # "overall" or a family / owasp id
+    n: int
+    asr_baseline: float
+    asr_guarded: float
+    delta: float  # baseline - guarded (positive = guardrail helped)
+    guard_pass_rate: float = 0.0  # fraction the guardrail let through unblocked
+    asr_behind_filter: float = 0.0  # ASR among probes the guardrail did NOT block

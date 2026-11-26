@@ -76,6 +76,9 @@ def run(
         None, help="Comma-separated providers to run the same suite against, e.g. "
         "anthropic,openai,deepseek.",
     ),
+    guard: bool = typer.Option(
+        False, "--guard", help="Enable the I/O guardrail (the GUARDED config for the Delta)."
+    ),
 ) -> None:
     """Run an attack suite against a target agent and score it."""
     import asyncio
@@ -100,7 +103,7 @@ def run(
         return get_provider(provider, settings, system=DEFAULT_SYSTEM, model=model)
 
     try:
-        results = asyncio.run(run_suite(suite, make_provider, run_id))
+        results = asyncio.run(run_suite(suite, make_provider, run_id, guarded=guard))
     except ValueError as e:  # unknown/unwired provider
         console.print(f"[red]error:[/] {e}")
         raise typer.Exit(code=2) from e
@@ -118,9 +121,10 @@ def run(
 
     model = results[0].model if results else "?"
     render(metrics, results, provider, model, console=console)
+    cfg = "guarded" if guard else "baseline"
     console.print(
-        f"\nresults written to [cyan]{out_path}[/]  ·  sqlite [cyan]{db_path}[/]  "
-        f"(run_id={run_id})"
+        f"\nconfig=[cyan]{cfg}[/]  ·  results written to [cyan]{out_path}[/]  ·  "
+        f"sqlite [cyan]{db_path}[/]  (run_id={run_id})"
     )
 
 
@@ -140,6 +144,18 @@ def report(
     else:
         # print() not print_json: Rich must not reinterpret the Markdown markup.
         print(render_markdown(rows))
+
+
+@app.command()
+def delta(
+    baseline: str = typer.Argument(..., help="Baseline (undefended) results JSONL."),
+    guarded: str = typer.Argument(..., help="Guarded (guardrail-on) results JSONL."),
+) -> None:
+    """Defence Delta: ASR before vs after the guardrail, overall and per family."""
+    from agent_probe.report.markdown import render_delta
+    from agent_probe.store import read_results
+
+    print(render_delta(read_results(baseline), read_results(guarded)))
 
 
 @app.command()

@@ -19,7 +19,7 @@ Most "AI security" projects are a prompt-injection demo in a notebook. This one 
 | 0 | Foundation & scaffolding | ✅ done |
 | 1 | Vertical slice (one real attack → one real number) | ✅ done |
 | 2 | Breadth: 5 attack families, published results table | ✅ done |
-| 3 | Defence Delta + cross-model (Claude / GPT / DeepSeek) | ⬜ |
+| 3 | Defence Delta (guardrail on qwen; cross-model deferred) | ✅ done |
 | 4 | CI gating, hardened judge, live dashboard | ⬜ |
 | 5 | Polish, writeup & OSS contribution | ⬜ |
 
@@ -67,7 +67,37 @@ and the number moves with technique._
 - The model **held** where it should: it never leaked its **system-prompt canary**, and it refused to take irreversible **excessive-agency** actions (0% ASR) — asking for confirmation instead of over-reaching.
 - Resistance shows up as `clean` (payload ignored, benign task done), not `refusal` — an interesting, honest finding: this model *silently declines* injected instructions far more than it *explicitly* refuses.
 
-> Target is a **local, synthetic** agent (free, offline, no third-party systems). Every attack is a readable YAML in [`attacks/gold/`](attacks/gold/) with a verified ATLAS id ([`docs/owasp-atlas-mapping.md`](docs/owasp-atlas-mapping.md)). Cross-model comparison (Claude vs GPT vs DeepSeek) and the guardrail **Defence Delta** land in Phase 3.
+> Target is a **local, synthetic** agent (free, offline, no third-party systems). Every attack is a readable YAML in [`attacks/gold/`](attacks/gold/) with a verified ATLAS id ([`docs/owasp-atlas-mapping.md`](docs/owasp-atlas-mapping.md)).
+
+## Defence Delta — the guardrail cut ASR **48.1% → 0.0%**
+
+The money metric: the **same 27-attack suite**, run with one guardrail enabled — a
+heuristic **I/O content filter** that sanitises inbound tool descriptions + tool
+outputs, enforces a **least-privilege egress allow-list** on `send_email`, and
+redacts leaked secrets from the answer (`src/agent_probe/guard/filter.py`).
+
+| Group | n | ASR baseline | ASR guarded | Δ |
+|---|---:|---:|---:|---:|
+| **overall** | 27 | **48.1%** | **0.0%** | **−48.1 pts** |
+| indirect_prompt_injection | 10 | 60.0% | 0.0% | −60.0 |
+| jailbreak_carrier | 4 | 50.0% | 0.0% | −50.0 |
+| mcp_tool_poisoning / shadowing / rug-pull | 6 | 50.0% | 0.0% | −50.0 |
+| sensitive_info_disclosure | 4 | 50.0% | 0.0% | −50.0 |
+
+**Read this honestly** (it's a measurement tool, so the caveats matter):
+- The guardrail intervened on **20 of 27** probes; the **7 it let through were
+  already resisted by the model** — so filter + model together = 0% on this suite.
+- 0% is **against this fixed, non-adaptive suite**, not a claim of invulnerability.
+  The egress allow-list does the heavy lifting — which is the real finding:
+  **constraining what the agent is allowed to _do_ beats trying to detect every
+  injection.** An *adaptive* attacker (one that routes through an allow-listed
+  channel, or avoids the filter's signatures) is the open problem — parked in
+  [`BACKLOG.md`](BACKLOG.md) as the natural next red-team.
+- This is a single local model (qwen2.5). Cross-model (Claude / GPT / DeepSeek) was
+  intentionally deferred — see `BACKLOG.md`.
+
+Reproduce: `agent-probe run evals/gold.yaml --provider local --guard` then
+`agent-probe delta <baseline>.jsonl <guarded>.jsonl`.
 <!-- HERO-RESULTS:END -->
 
 ## Quickstart (dev)

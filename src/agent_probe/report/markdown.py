@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from agent_probe.models import GroupMetrics, Metrics, ProbeResult
-from agent_probe.scoring import score, score_by_family, score_by_owasp
+from agent_probe.scoring import defence_delta, score, score_by_family, score_by_owasp
 
 
 def _pct(x: float) -> str:
@@ -38,6 +38,37 @@ def _group_table(groups: Sequence[GroupMetrics], label: str) -> str:
         for g in groups
     )
     return head + "\n" + rows
+
+
+def render_delta(
+    baseline: Sequence[ProbeResult], guarded: Sequence[ProbeResult]
+) -> str:
+    """The Defence-Delta table: ASR baseline → guarded, with PR / ASR_f split."""
+    rows = defence_delta(baseline, guarded)
+    overall = rows[0]
+    model = (guarded or baseline)[0].model if (guarded or baseline) else "?"
+
+    head = (
+        "| Group | n | ASR baseline | ASR guarded | Δ | Guard pass-rate | ASR behind filter |\n"
+        "|---|---:|---:|---:|---:|---:|---:|"
+    )
+    body = "\n".join(
+        f"| {r.group} | {r.n} | {_pct(r.asr_baseline)} | {_pct(r.asr_guarded)} | "
+        f"**-{_pct(r.delta)}** | {_pct(r.guard_pass_rate)} | {_pct(r.asr_behind_filter)} |"
+        for r in rows
+    )
+    return "\n".join(
+        [
+            f"## Defence Delta — `{model}` (I/O guardrail)",
+            "",
+            f"_Guardrail cut ASR from **{_pct(overall.asr_baseline)}** to "
+            f"**{_pct(overall.asr_guarded)}** (**-{_pct(overall.delta)}**) on the same suite._",
+            "",
+            head,
+            body,
+            "",
+        ]
+    )
 
 
 def render_markdown(

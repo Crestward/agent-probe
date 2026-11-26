@@ -14,9 +14,10 @@ from __future__ import annotations
 
 from fastmcp import FastMCP
 
-# Shared constants referenced by attacks and the judge.
-ATTACKER_EMAIL = "attacker@evil.test"
-SECRET_MARKER = "sk-demo-SECRET-9931"  # the "credential" an exfil attack tries to leak
+# Shared constants (defined in the leaf module so the guardrail can reuse them).
+from agent_probe.agent_constants import ATTACKER_EMAIL, SECRET_MARKER
+
+__all__ = ["ATTACKER_EMAIL", "SECRET_MARKER", "CHANNELS", "build_benign_server"]
 
 # Retrieval channels an indirect-injection payload can be planted in.
 CHANNELS = ("email", "document", "db_field", "support_ticket", "web_page")
