@@ -10,7 +10,11 @@ design, [`tasks.md`](tasks.md) for the phased build plan, and [`BACKLOG.md`](BAC
 for what's deliberately out of v1.0 scope.
 
 Most "AI security" projects are a prompt-injection demo in a notebook. This one is a
-**measurement instrument**: it treats defence as a number you can regression-test.
+**measurement instrument**: it treats defence as a number you can regression-test. It
+aims to be the **standardized, reproducible vulnerable-target benchmark** for MCP/agent
+attacks that the red-teaming-tools literature (arXiv 2611.04271) notes is still
+missing — fixed synthetic targets, verified taxonomy mappings, and a Defence Delta you
+can gate CI on.
 
 **▶ Live dashboard:** <https://claude.ai/artifact/32w8WqpHb8XJL51jWBG4wC> — interactive
 **cross-model** scoreboard (qwen2.5 vs Claude Haiku 4.5), Defence Delta, outcome
@@ -28,7 +32,7 @@ follows once the repo is pushed.)_
 | 2 | Breadth: 5 attack families, published results table | ✅ done |
 | 3 | Defence Delta + cross-model (qwen vs Haiku 4.5) | ✅ done |
 | 4 | Dashboard ✅ · CI gate + hardened judge | 🚧 |
-| 5 | Polish, writeup & OSS contribution | ⬜ |
+| 5 | Writeup, threat model & Responsible Use ✅ · demo GIF + OSS PR | 🚧 |
 
 <!-- HERO-RESULTS:START -->
 ## Results — 31 attacks, two targets
@@ -128,7 +132,7 @@ is also printed after every `run`.
 ```bash
 uv sync --extra dev                                   # install
 uv run agent-probe --help                             # see the command surface
-uv run pytest                                         # run the tests (45)
+uv run pytest                                         # run the tests (50)
 
 uv run agent-probe list --owasp LLM03                 # browse the attack catalog
 uv run agent-probe run evals/gold.yaml --provider local            # gold suite, free local qwen
@@ -162,14 +166,55 @@ Then `agent-probe recommend <run>.jsonl` to get the prioritized fixes for whatev
 your model failed. (A generic one-command `--compare` across providers is on the
 [`BACKLOG.md`](BACKLOG.md); for now run each provider and diff the results.)
 
+## Reproducibility
+
+The project is built to be re-run by a stranger, free, with one env var at most:
+
+```bash
+git clone <repo> && cd agent-probe
+uv sync --extra dev                                   # pinned via uv.lock
+uv run pytest                                         # 50 tests, no keys needed
+ollama pull qwen2.5:7b-instruct-q4_K_M                # the free default target
+uv run agent-probe run evals/gold.yaml --provider local            # baseline
+uv run agent-probe run evals/gold.yaml --provider local --guard    # guarded
+```
+
+No API key is required for the local target or the test suite. The committed
+snapshots in [`evals/results/`](evals/results/) are what the dashboard and the README
+tables are built from, so every published number is traceable to a file in the repo.
+Cloud targets need only the relevant key (`ANTHROPIC_API_KEY`, etc.) in `.env`.
+
+## Docs
+
+- **[`docs/threat-model.md`](docs/threat-model.md)** — assets, adversary capabilities,
+  trust boundaries, and exactly what's in and out of scope.
+- **[`docs/findings.md`](docs/findings.md)** — the writeup: *one ASR number hides
+  everything interesting*, with the cross-model spread and methodology caveats.
+- **[`docs/owasp-atlas-mapping.md`](docs/owasp-atlas-mapping.md)** — every attack's
+  OWASP LLM Top 10 (2026) + MITRE ATLAS id, verified against the live matrix.
+
 ## Responsible use
 
-agent-probe is a **defensive** security-testing tool for **authorized** use only.
-Targets are **synthetic agents we control** — a local model, or a cloud model called
-through our own API key — with synthetic tools and data. It does **not** attack
-third-party or production systems, accounts, or real data. It maps findings to public
-taxonomies (OWASP LLM Top 10, MITRE ATLAS) and does not publish novel weaponization.
-_(Expanded in Phase 5.)_
+agent-probe is a **defensive** security-testing tool for **authorized** use only
+against targets you own or are permitted to test.
+
+- **Synthetic, controlled targets only.** Every target is a model we control — a free
+  local model, or a cloud model called through our own API key — wired to synthetic
+  tools over synthetic data (fake secrets, fixture "customers"). agent-probe does
+  **not** attack third-party or production systems, accounts, or real user data, and
+  it has no capability to reach them.
+- **No novel weaponization.** Attacks are engineered from **published** literature and
+  mapped to **public** taxonomies (OWASP LLM Top 10, MITRE ATLAS). The repo publishes
+  no new offensive capability beyond what the cited papers already describe, and the
+  bundled guardrail is a **measurement** baseline, not a product you should ship as
+  your defence.
+- **Honest by construction.** 0% is never claimed; the suite is fixed and
+  non-adaptive, so guarded ASR is an *upper bound* on the defence. The dashboard shows
+  the cells the guardrail did **not** fix.
+- **Intended use:** evaluating and hardening agents you build or operate, security
+  research, and education. Not for probing systems you don't have permission to test.
+
+Full assumptions and boundaries: [`docs/threat-model.md`](docs/threat-model.md).
 
 ## License
 
