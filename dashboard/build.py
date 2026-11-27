@@ -16,6 +16,7 @@ from collections import Counter
 from pathlib import Path
 
 from agent_probe.models import Outcome
+from agent_probe.remediation import recommend
 from agent_probe.scoring import defence_delta, score, score_by_family, score_by_owasp
 from agent_probe.store import read_results
 
@@ -89,6 +90,7 @@ def _target_block(base, guard) -> dict:
         "families": _families(base, guard),
         "owasp": [{"owasp": g.group, "n": g.n_scored, "base_asr": g.asr}
                   for g in score_by_owasp(base)],
+        "recommendations": [r.model_dump() for r in recommend(base)],
         "probes": _probes(base, guard),
     }
     if guard:

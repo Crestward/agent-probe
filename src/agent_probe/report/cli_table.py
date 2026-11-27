@@ -63,5 +63,35 @@ def render(
     console.print(summary)
 
 
+_PRIORITY_STYLE = {
+    "high": "[bold red]HIGH[/]",
+    "medium": "[yellow]MED[/]",
+    "low": "[cyan]LOW[/]",
+}
+
+
+def render_recommendations(recs, console: Console | None = None, top: int | None = None) -> None:
+    """Print the prioritized measures to take (the remediation report)."""
+    console = console or Console()
+    if not recs:
+        console.print("\n[green]No successful attacks — no mitigations required.[/]")
+        return
+    console.print("\n[bold]Recommended actions[/]  (measures to take, most urgent first)\n")
+    shown = recs if top is None else recs[:top]
+    for r in shown:
+        tag = _PRIORITY_STYLE.get(r.priority, r.priority)
+        cover = "" if r.covered_by_guardrail else "  [magenta](not covered by the I/O guardrail)[/]"
+        console.print(
+            f"{tag}  [bold]{r.family.replace('_', ' ')}[/]  "
+            f"[dim]{r.owasp} · ASR {_pct(r.asr)} ({r.n_success}/{r.n})[/]{cover}"
+        )
+        console.print(f"    [dim]{r.finding}[/]")
+        for a in r.actions:
+            console.print(f"    • {a}")
+        console.print(f"    [dim]refs: {', '.join(r.refs)}[/]\n")
+    if top is not None and len(recs) > top:
+        console.print(f"[dim]… {len(recs) - top} more — run[/] [cyan]agent-probe recommend[/]")
+
+
 def _pct(x: float) -> str:
     return f"{x * 100:.1f}%"

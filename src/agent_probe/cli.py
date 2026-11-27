@@ -121,6 +121,11 @@ def run(
 
     model = results[0].model if results else "?"
     render(metrics, results, provider, model, console=console)
+
+    from agent_probe.remediation import recommend
+    from agent_probe.report.cli_table import render_recommendations
+
+    render_recommendations(recommend(results), console=console, top=3)
     cfg = "guarded" if guard else "baseline"
     console.print(
         f"\nconfig=[cyan]{cfg}[/]  ·  results written to [cyan]{out_path}[/]  ·  "
@@ -144,6 +149,26 @@ def report(
     else:
         # print() not print_json: Rich must not reinterpret the Markdown markup.
         print(render_markdown(rows))
+
+
+@app.command()
+def recommend(
+    results: str = typer.Argument(..., help="Path to a results JSONL file."),
+    format: str = typer.Option("text", help="text | md."),
+) -> None:
+    """Prescribe the measures to take: prioritized mitigations for what still fails."""
+    from agent_probe.remediation import recommend as _recommend
+    from agent_probe.store import read_results
+
+    recs = _recommend(read_results(results))
+    if format == "md":
+        from agent_probe.report.markdown import render_recommendations_md
+
+        print(render_recommendations_md(recs))
+    else:
+        from agent_probe.report.cli_table import render_recommendations
+
+        render_recommendations(recs, console=console)
 
 
 @app.command()

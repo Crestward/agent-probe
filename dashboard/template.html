@@ -128,6 +128,25 @@
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
+  /* recommendations */
+  .recs { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .rec { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--panel-2); }
+  .rec.high { border-left: 4px solid var(--danger); }
+  .rec.medium { border-left: 4px solid var(--warn); }
+  .rec.low { border-left: 4px solid var(--clean); }
+  .rec .rh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .rpri { font-family: var(--mono); font-size: .64rem; font-weight: 700; letter-spacing: .05em;
+    padding: 2px 8px; border-radius: 999px; }
+  .rpri.high { background: color-mix(in oklab, var(--danger) 20%, transparent); color: var(--danger); }
+  .rpri.medium { background: color-mix(in oklab, var(--warn) 22%, transparent); color: var(--warn); }
+  .rpri.low { background: color-mix(in oklab, var(--clean) 20%, transparent); color: var(--clean); }
+  .rec .rfam { font-weight: 600; } .rec .rmeta { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+  .rec .runcov { font-family: var(--mono); font-size: .66rem; color: var(--danger);
+    border: 1px solid color-mix(in oklab, var(--danger) 35%, transparent); border-radius: 999px; padding: 1px 7px; }
+  .rec .rfind { font-size: .84rem; color: var(--muted); margin: 6px 0 8px; }
+  .rec ul { margin: 0; padding-left: 18px; font-size: .85rem; display: flex; flex-direction: column; gap: 4px; }
+  .rec .rrefs { font-family: var(--mono); font-size: .68rem; color: var(--faint); margin-top: 8px; }
+
   .explorer { display: grid; grid-template-columns: 340px 1fr; gap: 14px; align-items: start; }
   .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .filters input, .filters select { font-family: var(--mono); font-size: .76rem; color: var(--fg);
@@ -244,6 +263,11 @@
       <span><i class="mx-clean_completion"></i>clean completion</span>
       <span><i class="mx-error"></i>error</span>
     </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Recommended actions &middot; measures to take for this target</div>
+    <div class="panel recs" id="recs"></div>
   </section>
 
   <section>
@@ -450,8 +474,24 @@
     });
   }
 
+  function renderRecs() {
+    var recs = T().recommendations || [];
+    if (!recs.length) { el("recs").innerHTML = '<div style="color:var(--safe);font-size:.9rem">No successful attacks — no mitigations required for this target.</div>'; return; }
+    el("recs").innerHTML = recs.map(function (r) {
+      var cover = r.covered_by_guardrail ? "" : '<span class="runcov">not covered by the I/O guardrail</span>';
+      return '<div class="rec ' + r.priority + '"><div class="rh">' +
+        '<span class="rpri ' + r.priority + '">' + r.priority.toUpperCase() + '</span>' +
+        '<span class="rfam">' + esc(r.family.replace(/_/g, " ")) + '</span>' +
+        '<span class="rmeta">' + esc(r.owasp) + ' &middot; ASR ' + pct(r.asr) + ' (' + r.n_success + '/' + r.n + ')</span>' +
+        cover + '</div>' +
+        '<div class="rfind">' + esc(r.finding) + '</div>' +
+        '<ul>' + r.actions.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join("") + '</ul>' +
+        '<div class="rrefs">refs: ' + esc(r.refs.join(", ")) + '</div></div>';
+    }).join("");
+  }
+
   function renderTarget() {
-    renderScoreboard(); renderDeltaBars(); renderHeat();
+    renderScoreboard(); renderDeltaBars(); renderHeat(); renderRecs();
     rebuildFamFilter();
     if (!probe(selected)) selected = null;
     renderList(); renderDetail();

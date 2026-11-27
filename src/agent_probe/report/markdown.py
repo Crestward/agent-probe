@@ -40,6 +40,28 @@ def _group_table(groups: Sequence[GroupMetrics], label: str) -> str:
     return head + "\n" + rows
 
 
+def render_recommendations_md(recs) -> str:
+    """The remediation report as Markdown — the measures to take."""
+    if not recs:
+        return "## Recommended actions\n\nNo successful attacks — no mitigations required.\n"
+    parts = ["## Recommended actions", "",
+             "_Prioritized measures to take, most urgent first._", ""]
+    for r in recs:
+        cover = "" if r.covered_by_guardrail else " — **not covered by the I/O guardrail**"
+        parts.append(
+            f"### `{r.priority.upper()}` · {r.family.replace('_', ' ')} "
+            f"({r.owasp}, ASR {_pct(r.asr)}){cover}"
+        )
+        parts.append("")
+        parts.append(f"_{r.finding}_")
+        parts.append("")
+        parts += [f"- {a}" for a in r.actions]
+        parts.append("")
+        parts.append(f"<sub>refs: {', '.join(r.refs)}</sub>")
+        parts.append("")
+    return "\n".join(parts)
+
+
 def render_delta(
     baseline: Sequence[ProbeResult], guarded: Sequence[ProbeResult]
 ) -> str:

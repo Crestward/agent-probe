@@ -100,6 +100,27 @@ content filter** that sanitises inbound tool descriptions + outputs, enforces a
 > OpenAI/DeepSeek targets remain deferred ([`BACKLOG.md`](BACKLOG.md)). Reproduce:
 > `agent-probe run evals/gold.yaml --provider local --guard`, then
 > `agent-probe delta <baseline>.jsonl <guarded>.jsonl`.
+
+## From measurement to action — `agent-probe recommend`
+
+The benchmark doesn't just score you; it tells you **what to do about it.** For every
+family that still lands, it prescribes prioritized, concrete mitigations mapped to
+OWASP/ATLAS — in the CLI, in Markdown, and as a "Recommended actions" panel on the
+dashboard. It also flags which findings the built-in guardrail already covers vs.
+which need a different defence:
+
+```text
+HIGH  indirect prompt injection   LLM01 · ASR 50.0% (5/10)
+    • Spotlight/delimit tool output; treat retrieved content as data, not commands.
+    • Screen inbound tool output for injection signatures before it re-enters context.
+    • Keep a hard instruction hierarchy; require confirmation for state-changing actions.
+HIGH  scope violation             LLM03 · ASR 25.0%  (not covered by the I/O guardrail)
+    • Add a role/scope-adherence check; refuse off-scope output.
+    • Separate capabilities at the routing layer (no code-exec for a support bot).
+```
+
+`agent-probe recommend evals/results/<run>.jsonl` (or `--format md`). A compact top-3
+is also printed after every `run`.
 <!-- HERO-RESULTS:END -->
 
 ## Quickstart (dev)
@@ -107,13 +128,14 @@ content filter** that sanitises inbound tool descriptions + outputs, enforces a
 ```bash
 uv sync --extra dev                                   # install
 uv run agent-probe --help                             # see the command surface
-uv run pytest                                         # run the tests (41)
+uv run pytest                                         # run the tests (45)
 
 uv run agent-probe list --owasp LLM03                 # browse the attack catalog
 uv run agent-probe run evals/gold.yaml --provider local            # gold suite, free local qwen
 uv run agent-probe run evals/gold.yaml --provider local --guard    # guarded config
 uv run agent-probe run evals/gold.yaml --provider anthropic --model claude-haiku-4-5  # cloud target
 uv run agent-probe delta <baseline>.jsonl <guarded>.jsonl          # Defence Delta table
+uv run agent-probe recommend <run>.jsonl                           # prioritized mitigations
 uv run python dashboard/build.py                      # rebuild the dashboard from snapshots
 ```
 

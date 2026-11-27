@@ -210,6 +210,22 @@ class ProbeResult(BaseModel):
     trace: dict[str, Any]
 
 
+class Recommendation(BaseModel):
+    """A prioritized mitigation for one failing attack family (the 'measures to take')."""
+
+    family: str
+    owasp: str
+    atlas: str | None = None
+    priority: str  # "high" | "medium" | "low"
+    asr: float
+    n_success: int
+    n: int
+    finding: str
+    actions: list[str]
+    refs: list[str] = Field(default_factory=list)
+    covered_by_guardrail: bool = False  # does the v1.0 I/O guardrail already address it?
+
+
 class DefenceDelta(BaseModel):
     """ASR before vs after the guardrail on the same suite (SPEC §3, the money metric)."""
 
