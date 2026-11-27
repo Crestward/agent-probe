@@ -9,9 +9,9 @@ Park ideas here instead of expanding v1.0. See the **Scope Freeze** in `SPEC.md`
 - **Persona / coercive-control social-engineering class** (2611.08226). Multi-turn persona jailbreaks (role-play, authority, incremental compliance). v1.0 is single-turn-ish; multi-turn conversation-state attacks are v2.
 - **Bulk external-corpus import** (AdvBench / JailbreakBench / MaliciousInstruct / HarmBench). Phase 2 represents seed→carrier *structurally* via the mutator pipeline (`attacks/generator.py`) but keeps the gold run hand-authored. Wiring the full corpora as intent sources — thousands of rows wrapped into channel payloads — would balloon the published run and dilute the curated signal; promote only after the Defence Delta (Phase 3) exists to make bulk ASR meaningful.
 
-## Cross-model comparison (partly done)
-- **Done:** qwen2.5:7b vs **Claude Haiku 4.5** (2026-11-27), via the existing Anthropic provider. Real finding in the README/dashboard.
-- **Still parked:** **OpenAI + DeepSeek providers + a generic `--compare` flag.** `providers/openai_compatible.py` already drives the OpenAI-compatible wire format, so `providers/openai.py` / `providers/deepseek.py` are small — but they are the remaining cloud-spend items. Promote when a Claude-vs-GPT-vs-DeepSeek contrast is worth the spend (Western-vs-Chinese-lab blog angle).
+## Cross-model comparison (mostly done)
+- **Done:** qwen2.5:7b vs **Claude Haiku 4.5** (2026-11-27) in the README/dashboard. **All target providers are now wired** — anthropic, openai, deepseek, local, and a generic **openai-compatible** (`--base-url`) for any endpoint. Users can red-team their own model.
+- **Still parked:** a generic one-command **`--compare` flag** that runs several providers in one invocation (today you run each separately and diff). Small convenience; add when the cross-model story needs a one-liner. Actually *running* OpenAI/DeepSeek is only gated by the user's own keys + spend now, not by code.
 
 ## Scope-adherence guardrail (new, from the Haiku finding)
 - The v1.0 I/O guardrail defends **exfiltration**, so `scope_violation` (a support bot coerced to write code / answer off-topic / swap persona) survives it on *both* models — the dashboard's visible blind spot. A second, orthogonal guardrail — a **role/scope classifier** that checks each response against the agent's declared purview before it returns — would close it. Natural "guardrail #2" once v1.0 ships; pairs with the guardrail-shootout item below.

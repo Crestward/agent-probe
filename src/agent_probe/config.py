@@ -19,6 +19,7 @@ PROVIDER_KEY_ENV: dict[str, str] = {
 
 # DeepSeek speaks the OpenAI API with a different base URL.
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+OPENAI_BASE_URL = "https://api.openai.com/v1"
 
 
 class Settings(BaseSettings):
@@ -35,6 +36,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
+    # Bring-your-own endpoint: any OpenAI-compatible server (vLLM, LM Studio, Together,
+    # Groq, a self-hosted model). Key optional — many local servers need none.
+    custom_api_key: str = Field(default="", alias="CUSTOM_API_KEY")
 
     # --- Behaviour (AGENT_PROBE_ prefixed) -------------------------------------
     default_provider: str = "anthropic"
@@ -43,10 +47,15 @@ class Settings(BaseSettings):
     # model (e.g. claude-sonnet-5-5 / claude-haiku-4-5).
     anthropic_model: str = "claude-opus-5-5"
     openai_model: str = "gpt-4.1"
+    openai_base_url: str = OPENAI_BASE_URL
     deepseek_model: str = "deepseek-chat"
+    deepseek_base_url: str = DEEPSEEK_BASE_URL
     # Local target via Ollama's OpenAI-compatible endpoint (free, offline, no ToS risk).
     local_model: str = "qwen2.5:7b-instruct-q4_K_M"
     local_base_url: str = "http://localhost:11434/v1"
+    # Bring-your-own endpoint (--provider openai-compatible). Set via CLI or env.
+    custom_base_url: str = ""
+    custom_model: str = ""
     log_level: str = "INFO"
 
     def key_for(self, provider: str) -> str:

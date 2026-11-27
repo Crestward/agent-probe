@@ -1,7 +1,8 @@
 """OpenAI-compatible provider — drives any chat-completions endpoint.
 
-Used now for the local Ollama target, and reused in Phase 3 for OpenAI and
-DeepSeek (both speak this same API, differing only in base_url + key + model).
+One class backs the local Ollama target, OpenAI, DeepSeek, and any bring-your-own
+endpoint (vLLM, LM Studio, Together, Groq, self-hosted) — they differ only in
+base_url + key + model.
 
 Translation vs. the neutral model:
 - tools  -> {"type": "function", "function": {name, description, parameters}}

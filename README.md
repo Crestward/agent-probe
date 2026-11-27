@@ -141,8 +141,26 @@ uv run python dashboard/build.py                      # rebuild the dashboard fr
 
 The local target uses [Ollama](https://ollama.com) (`ollama pull qwen2.5:7b-instruct-q4_K_M`) —
 free, offline, and the default surface for attack iteration. Copy `.env.example`
-to `.env` and add `ANTHROPIC_API_KEY` to run against a Claude target. (OpenAI/DeepSeek
-targets are deferred — see [`BACKLOG.md`](BACKLOG.md).)
+to `.env` and add `ANTHROPIC_API_KEY` to run against a Claude target.
+
+### Bring your own model
+
+The target is a pluggable knob — red-team **your** model:
+
+```bash
+agent-probe run evals/gold.yaml --provider anthropic --model claude-sonnet-5-5
+agent-probe run evals/gold.yaml --provider openai    --model gpt-4.1          # OPENAI_API_KEY
+agent-probe run evals/gold.yaml --provider deepseek  --model deepseek-chat    # DEEPSEEK_API_KEY
+agent-probe run evals/gold.yaml --provider local     --model llama3.1         # Ollama, free
+
+# ANY OpenAI-compatible endpoint — vLLM, LM Studio, Together, Groq, self-hosted:
+agent-probe run evals/gold.yaml --provider openai-compatible \
+    --base-url https://your-host/v1 --model your-model        # key via CUSTOM_API_KEY
+```
+
+Then `agent-probe recommend <run>.jsonl` to get the prioritized fixes for whatever
+your model failed. (A generic one-command `--compare` across providers is on the
+[`BACKLOG.md`](BACKLOG.md); for now run each provider and diff the results.)
 
 ## Responsible use
 
