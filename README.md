@@ -29,10 +29,13 @@ can point it at your own model or any OpenAI-compatible endpoint in one flag.
 - **Reproducible** — a deterministic, keyless test suite (50 tests) and committed
   result snapshots, so a stranger can clone the repo and rebuild every published number.
 
-**▶ Live dashboard:** <https://claude.ai/artifact/32w8WqpHb8XJL51jWBG4wC> — interactive
-**cross-model** scoreboard (qwen2.5 vs Claude Haiku 4.5), Defence Delta, outcome
-heatmap, and a **trace explorer** (click any probe to see the exact tool calls that led
-to the breach, with a baseline↔guarded toggle).
+**▶ [Results report (PDF)](release/agent-probe-report.pdf)** — the headline
+**cross-model** findings from my run (qwen2.5 vs Claude Haiku 4.5), on two pages. For
+the **interactive** version — scoreboard, Defence-Delta bars, outcome heatmap, and a
+**trace explorer** (click any probe to see the exact tool calls that led to the breach,
+with a baseline↔guarded toggle) — build the dashboard locally with
+`python dashboard/build.py` and open `dashboard/index.html`. You can also build it from
+[your own model's run](#bring-your-own-model).
 
 See [`BACKLOG.md`](BACKLOG.md) for what's deliberately **out of v1.0 scope**. The
 backlog is part of the point — a red-team tool is only trustworthy if it's honest about
