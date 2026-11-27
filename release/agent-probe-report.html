@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agent-probe — project report</title>
+<style>
+  :root{
+    --ink:#14181f; --muted:#5b6472; --line:#d9dee6; --soft:#f4f6f9;
+    --accent:#2f6df6; --accent-ink:#0b3aa8; --bad:#c0392b; --good:#1a8a4a;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @page{ size:A4; margin:14mm 14mm 16mm; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:var(--sans); color:var(--ink); font-size:10.2px; line-height:1.5;
+        -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .wrap{ max-width:720px; margin:0 auto; padding:18px 0 0; }
+
+  header.band{ border-left:5px solid var(--accent); padding:2px 0 10px 14px; margin-bottom:14px; }
+  h1{ font-size:26px; margin:0 0 2px; letter-spacing:-.4px; }
+  .thesis{ font-size:12px; font-weight:600; color:var(--accent-ink); margin:2px 0 8px; }
+  .byline{ font-size:9.6px; color:var(--muted); }
+  .byline a{ color:var(--accent-ink); text-decoration:none; }
+
+  h2{ font-size:12.5px; margin:16px 0 6px; padding-bottom:3px; border-bottom:1.5px solid var(--line);
+      text-transform:uppercase; letter-spacing:.6px; color:#20262f; }
+  p{ margin:6px 0; }
+  .lead{ font-size:10.6px; }
+  strong{ color:#0c1118; }
+  .fp{ color:var(--accent-ink); font-style:italic; }
+
+  table{ width:100%; border-collapse:collapse; margin:6px 0 2px; font-size:9.8px; }
+  th,td{ text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); }
+  th{ background:var(--soft); font-weight:700; font-size:9px; text-transform:uppercase; letter-spacing:.4px; color:#39414d; }
+  td.n,th.n{ text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); }
+  .bad{ color:var(--bad); font-weight:700; }
+  .good{ color:var(--good); font-weight:700; }
+  .delta{ font-family:var(--mono); font-weight:700; }
+
+  ul{ margin:6px 0; padding-left:16px; }
+  li{ margin:3px 0; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:4px 20px; }
+  .cap{ font-size:9.8px; }
+  .cap b{ color:var(--accent-ink); }
+
+  code,.mono{ font-family:var(--mono); font-size:9.2px; background:var(--soft); padding:1px 4px; border-radius:3px; }
+  .cmd{ display:block; background:#111722; color:#e7edf5; font-family:var(--mono); font-size:9px;
+        padding:8px 10px; border-radius:5px; margin:6px 0; white-space:pre; overflow:hidden; }
+  .cmd .c{ color:#7f8ea3; }
+
+  .note{ background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:9px 12px; font-size:9.6px; margin:8px 0; }
+  .note b{ color:var(--accent-ink); }
+
+  footer{ margin-top:16px; padding-top:8px; border-top:1.5px solid var(--line);
+          font-size:8.8px; color:var(--muted); display:flex; justify-content:space-between; }
+  .tags span{ display:inline-block; background:var(--soft); border:1px solid var(--line);
+              border-radius:20px; padding:1px 8px; margin:2px 4px 0 0; font-size:8.6px; color:#39414d; }
+  .avoid-break{ break-inside:avoid; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="band">
+    <h1>agent-probe</h1>
+    <div class="thesis">Attack LLM agents and their MCP tool servers — then <u>measure the defence</u>.</div>
+    <div class="byline">
+      A red-teaming &amp; guardrail benchmark for agentic AI · mapped to OWASP LLM Top&nbsp;10 (2026) + MITRE ATLAS ·
+      Python&nbsp;3.12 · <a>live dashboard + CLI</a>
+    </div>
+  </header>
+
+  <p class="lead"><span class="fp">Why I built it.</span> Most “AI security” projects stop at a
+  screenshot of a single prompt injection working. I wanted the opposite — a <strong>measurement
+  instrument</strong> that treats agent defence as a number you can regression-test. agent-probe
+  attacks a tool-using LLM agent across realistic channels (email, documents, CRM fields, support
+  tickets, web pages, and the MCP tool layer itself), then measures how much a guardrail actually
+  moves the Attack Success Rate — the <strong>Defence Delta</strong>. It aims to be the standardized,
+  reproducible vulnerable-target benchmark for MCP/agent attacks that the red-teaming literature
+  (arXiv&nbsp;2611.04271) notes is still missing. Everything runs against a free local model by
+  default (zero cloud spend); you can point it at your own model in one flag.</p>
+
+  <h2>Headline result — 31 attacks, two targets</h2>
+  <p>Every attack runs against a local <strong>qwen2.5:7b</strong> and <strong>Claude Haiku&nbsp;4.5</strong>
+  (the small, fast model most teams actually put behind RAG and agent tools), baseline and with one
+  guardrail. The point is the <strong>spread</strong>: a single ASR number hides everything interesting.</p>
+
+  <table class="avoid-break">
+    <thead><tr><th>Metric</th><th class="n">qwen2.5:7b (local)</th><th class="n">Claude Haiku 4.5</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Baseline ASR</strong></td><td class="n bad">41.9%</td><td class="n bad">12.9%</td></tr>
+      <tr><td><strong>Guarded ASR</strong></td><td class="n">6.5%</td><td class="n">3.2%</td></tr>
+      <tr><td>Defence Delta</td><td class="n delta good">−35.4 pts</td><td class="n delta good">−9.7 pts</td></tr>
+      <tr><td>Refusal rate (baseline)</td><td class="n">9.7%</td><td class="n">19.4%</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Baseline ASR by attack family — where each model is weak</h2>
+  <table class="avoid-break">
+    <thead><tr><th>Attack family</th><th>OWASP</th><th class="n">qwen2.5</th><th class="n">Haiku 4.5</th></tr></thead>
+    <tbody>
+      <tr><td>Indirect prompt injection</td><td>LLM01</td><td class="n bad">50.0%</td><td class="n good">0.0%</td></tr>
+      <tr><td>Jailbreak carrier</td><td>LLM01</td><td class="n bad">50.0%</td><td class="n good">0.0%</td></tr>
+      <tr><td>MCP tool poisoning</td><td>LLM01</td><td class="n bad">50.0%</td><td class="n good">0.0%</td></tr>
+      <tr><td>MCP rug-pull</td><td>LLM03</td><td class="n bad">50.0%</td><td class="n good">0.0%</td></tr>
+      <tr><td>Sensitive-info disclosure</td><td>LLM02</td><td class="n bad">50.0%</td><td class="n good">0.0%</td></tr>
+      <tr><td>MCP tool shadowing</td><td>LLM03</td><td class="n bad">50.0%</td><td class="n bad">50.0%</td></tr>
+      <tr><td>Scope / role violation</td><td>LLM03</td><td class="n">25.0%</td><td class="n bad">50.0%</td></tr>
+      <tr><td>Excessive agency</td><td>LLM03</td><td class="n good">0.0%</td><td class="n bad">33.3%</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note avoid-break">
+    <b>What the spread says (this is why it's a benchmark, not a demo):</b> Haiku shrugs off everything
+    qwen falls for — injection, jailbreak carriers, tool-poisoning, rug-pull, secret disclosure all drop
+    to <b>0%</b>. <b>But Haiku is <i>more</i> vulnerable where it counts for agents:</b> scope violations
+    (a support bot coerced into writing code / running SQL / swapping persona — 50%) and excessive-agency
+    actions (33%). qwen's weakness is injection/exfiltration; Haiku's is agency and staying in role. One
+    ASR number would have hidden that completely.
+  </div>
+
+  <h2>What I learned</h2>
+  <ul class="avoid-break">
+    <li><strong>Different models fail at different things.</strong> “Which model is safest” is the wrong
+      question; “safe against which failure class, for my agent's role and permissions” is the right one.</li>
+    <li><strong>The fix was a better attack, not a weaker target.</strong> Naive injection scores 0% on
+      every model. I engineered attacks from the literature instead — AgentDojo's
+      <span class="mono">important_instructions</span> template lands on qwen2.5 at 100% on its own.
+      Pulling a rigged/uncensored model would have made the benchmark worthless.</li>
+    <li><strong>Constraining actions beats detecting every injection.</strong> The guardrail's
+      least-privilege egress allow-list does the heavy lifting: once the model <i>can't</i> email the
+      attacker, a successful injection has nowhere to go.</li>
+    <li><strong>Honesty is the product.</strong> Guarded ASR never hits 0% — scope violation survives the
+      exfil guardrail on both models. The dashboard shows the cells the defence <i>didn't</i> fix, and
+      <span class="mono">recommend</span> flags them as needing a different control.</li>
+  </ul>
+
+  <h2>What it does</h2>
+  <div class="grid2 cap avoid-break">
+    <div><b>8 attack families</b> across 10+ channels, each a readable YAML with a verified MITRE ATLAS id.</div>
+    <div><b>Measures the defence</b> — ASR before/after one guardrail, overall and per family, with PR / ASR-behind-filter split.</div>
+    <div><b>Prescribes the fix</b> — <span class="mono">recommend</span> outputs prioritized, OWASP/ATLAS-mapped mitigations per failing family.</div>
+    <div><b>Bring your own model</b> — local (Ollama), Anthropic, OpenAI, DeepSeek, or any OpenAI-compatible endpoint.</div>
+    <div><b>Live dashboard</b> — cross-model scoreboard, Defence-Delta bars, outcome heatmap, and a trace explorer.</div>
+    <div><b>Reproducible</b> — 50 deterministic, keyless tests + committed result snapshots; every number traces to a file.</div>
+  </div>
+
+  <h2>Run it</h2>
+  <div class="cmd"><span class="c"># free, offline, zero cloud spend — the default surface</span>
+agent-probe run evals/gold.yaml --provider local            <span class="c"># baseline</span>
+agent-probe run evals/gold.yaml --provider local --guard    <span class="c"># guarded</span>
+agent-probe delta &lt;baseline&gt;.jsonl &lt;guarded&gt;.jsonl         <span class="c"># Defence Delta table</span>
+agent-probe recommend &lt;run&gt;.jsonl                           <span class="c"># prioritized mitigations</span>
+
+<span class="c"># red-team your own model — any OpenAI-compatible endpoint</span>
+agent-probe run evals/gold.yaml --provider openai-compatible --base-url &lt;url&gt; --model &lt;name&gt;</div>
+
+  <footer>
+    <div class="tags">
+      <span>Python 3.12</span><span>FastMCP</span><span>pydantic</span><span>typer + rich</span>
+      <span>OWASP LLM Top 10</span><span>MITRE ATLAS</span><span>pytest</span>
+    </div>
+    <div style="text-align:right">Defensive / authorized testing only.<br>Synthetic, controlled targets — no third-party systems.</div>
+  </footer>
+
+</div>
+</body>
+</html>
