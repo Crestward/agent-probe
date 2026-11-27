@@ -42,6 +42,12 @@ dashboard/index.html
 # Personal learning notes (not part of the project)
 learning/
 
+# Internal planning docs — kept locally, NOT in the public repo
+plan.md
+SPEC.md
+tasks.md
+RAG-SPEC.md
+
 # OS / editor
 .DS_Store
 Thumbs.db

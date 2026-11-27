@@ -1,38 +1,42 @@
 # agent-probe
 
 > **Attack LLM agents and their MCP tool servers — then _measure the defence_.**
-> agent-probe reports Attack Success Rate, Refusal Rate and tool-hijack rate,
-> mapped to the **OWASP LLM Top 10 (2026)** and **MITRE ATLAS**, with CI gating
-> and a live results dashboard.
+> Reports Attack Success Rate, Refusal Rate and tool-hijack rate, mapped to the
+> **OWASP LLM Top 10 (2026)** and **MITRE ATLAS**, with a live results dashboard.
 
-🚧 **Under construction** — building in public. See [`SPEC.md`](SPEC.md) for the
-design, [`tasks.md`](tasks.md) for the phased build plan, and [`BACKLOG.md`](BACKLOG.md)
-for what's deliberately out of v1.0 scope.
+**Why I built it.** Most "AI security" projects stop at a screenshot of a single
+prompt injection working. I wanted the opposite — a **measurement instrument** that
+treats agent defence as a number you can regression-test. agent-probe attacks a
+tool-using LLM agent across realistic channels (email, documents, CRM fields, support
+tickets, web pages, and the MCP tool layer itself), then measures how much a guardrail
+actually moves the Attack Success Rate: the **Defence Delta**. My aim was to build the
+standardized, reproducible vulnerable-target benchmark for MCP/agent attacks that the
+red-teaming literature (arXiv 2611.04271) notes is still missing.
 
-Most "AI security" projects are a prompt-injection demo in a notebook. This one is a
-**measurement instrument**: it treats defence as a number you can regression-test. It
-aims to be the **standardized, reproducible vulnerable-target benchmark** for MCP/agent
-attacks that the red-teaming-tools literature (arXiv 2611.04271) notes is still
-missing — fixed synthetic targets, verified taxonomy mappings, and a Defence Delta you
-can gate CI on.
+Everything runs against a **free local model by default** (zero cloud spend), and you
+can point it at your own model or any OpenAI-compatible endpoint in one flag.
+
+### What it does
+- **8 attack families** — indirect prompt injection, MCP tool poisoning / shadowing /
+  rug-pull, excessive agency, sensitive-info disclosure, jailbreak carriers, and
+  scope/role violation — each a readable YAML with a verified MITRE ATLAS id.
+- **Measures the defence**, not just the attack: ASR before vs. after one guardrail,
+  overall and per family — including an honest view of what the guardrail *doesn't* fix.
+- **Tells you what to do about it** — `agent-probe recommend` prescribes prioritized,
+  OWASP/ATLAS-mapped mitigations for whatever your model failed.
+- **Bring your own model** — local (Ollama), Anthropic, OpenAI, DeepSeek, or any
+  OpenAI-compatible endpoint (vLLM, LM Studio, Together, Groq, self-hosted).
+- **Reproducible** — a deterministic, keyless test suite (50 tests) and committed
+  result snapshots, so a stranger can clone the repo and rebuild every published number.
 
 **▶ Live dashboard:** <https://claude.ai/artifact/32w8WqpHb8XJL51jWBG4wC> — interactive
 **cross-model** scoreboard (qwen2.5 vs Claude Haiku 4.5), Defence Delta, outcome
-heatmap, and a **trace explorer** (click any probe to see the exact tool calls that
-led to the breach, with a baseline↔guarded toggle). _(Private preview; built by
-`dashboard/build.py` from the committed snapshots. A public GitHub Pages deploy
-follows once the repo is pushed.)_
+heatmap, and a **trace explorer** (click any probe to see the exact tool calls that led
+to the breach, with a baseline↔guarded toggle).
 
-## Status
-
-| Phase | What | State |
-|---|---|---|
-| 0 | Foundation & scaffolding | ✅ done |
-| 1 | Vertical slice (one real attack → one real number) | ✅ done |
-| 2 | Breadth: 5 attack families, published results table | ✅ done |
-| 3 | Defence Delta + cross-model (qwen vs Haiku 4.5) | ✅ done |
-| 4 | Dashboard ✅ · CI gate + hardened judge | 🚧 |
-| 5 | Writeup, threat model & Responsible Use ✅ · demo GIF + OSS PR | 🚧 |
+See [`BACKLOG.md`](BACKLOG.md) for what's deliberately **out of v1.0 scope**. The
+backlog is part of the point — a red-team tool is only trustworthy if it's honest about
+its limits.
 
 <!-- HERO-RESULTS:START -->
 ## Results — 31 attacks, two targets

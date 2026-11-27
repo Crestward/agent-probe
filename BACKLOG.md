@@ -1,6 +1,9 @@
 # agent-probe — Backlog (NOT v1.0)
 
-Park ideas here instead of expanding v1.0. See the **Scope Freeze** in `SPEC.md`. Promote an item only when v1.0 has shipped and the item moves the headline number or the 20-second demo.
+Deliberately **out of v1.0 scope.** Ideas are parked here instead of expanding the
+release; an item is promoted only once v1.0 has shipped and the item moves the headline
+number or the core demo. Keeping this list is a feature: a red-team benchmark is only
+trustworthy if it's explicit about what it does *not* yet cover.
 
 ## Attack classes (v2+)
 - **Reasoning-prefix / CoT injection** (BrainwashedLLM, 2611.04717). Prepend an adversarial reasoning trace so an LRM "continues" it into a harmful tool call. New capability-gating needed (only applies to models with a user-prefillable reasoning buffer; hidden-CoT o-series immune). Strong v2 attack family, but a different threat model than v1.0's MCP focus.
