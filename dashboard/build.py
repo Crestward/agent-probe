@@ -1,17 +1,27 @@
-"""Build the static dashboard: read every committed result snapshot, compute all
-numbers through the real scoring code, and bake them into `dashboard/index.html`
-via `dashboard/template.html`. No network, no backend — the page is self-contained.
+"""Build the static dashboard: read result snapshots, compute every number through
+the real scoring code, and bake them into `dashboard/index.html` via
+`dashboard/template.html`. No network, no backend — the page is self-contained.
 
-Supports multiple targets (e.g. a local qwen and a cloud Haiku) so the dashboard
-shows a per-model view plus a cross-model comparison. A target whose guarded
-snapshot is missing still renders its baseline.
+Two modes:
 
-Run from the repo root:  uv run python dashboard/build.py
+  # 1. No args — build the committed demo (the author's qwen + Haiku runs).
+  uv run python dashboard/build.py
+
+  # 2. Your own run — point it at the result files YOU produced, so the dashboard
+  #    shows YOUR model's results, not the author's:
+  uv run agent-probe run evals/gold.yaml --provider <yours>            # writes a run-*.jsonl
+  uv run agent-probe run evals/gold.yaml --provider <yours> --guard    # writes another
+  uv run python dashboard/build.py <your-baseline>.jsonl <your-guarded>.jsonl
+
+The target label is taken from the model name recorded in the results. A target
+whose guarded snapshot is missing still renders its baseline.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -23,7 +33,9 @@ from agent_probe.store import read_results
 ROOT = Path(__file__).resolve().parent.parent
 R = ROOT / "evals/results"
 
-# (label, baseline snapshot, guarded snapshot). Order = selector order.
+# The committed demo targets (label, baseline snapshot, guarded snapshot). Used only
+# when build.py is run with no args. `label=None` means "derive it from the model
+# recorded in the results" — which is what every bring-your-own run gets.
 TARGETS = [
     ("qwen2.5:7b (local)", R / "gold-qwen2.5-7b.jsonl", R / "gold-qwen2.5-7b-guarded.jsonl"),
     ("claude-haiku-4-5", R / "gold-haiku-4-5.jsonl", R / "gold-haiku-4-5-guarded.jsonl"),
@@ -104,17 +116,46 @@ def _target_block(base, guard) -> dict:
     return block
 
 
-def main() -> None:
+def _resolve_targets(argv: list[str]) -> list[tuple[str | None, Path, Path | None]]:
+    """No args -> the committed demo. One or two JSONL paths -> a single target built
+    from the caller's own run (label derived from the model in the results)."""
+    p = argparse.ArgumentParser(
+        prog="dashboard/build.py",
+        description="Build dashboard/index.html from result snapshots.",
+    )
+    p.add_argument("baseline", nargs="?", help="your baseline run's .jsonl (optional)")
+    p.add_argument("guarded", nargs="?", help="your --guard run's .jsonl (optional)")
+    args = p.parse_args(argv)
+    if args.baseline is None:
+        return list(TARGETS)
+    base = Path(args.baseline)
+    if not base.exists():
+        p.error(f"no such file: {base}")
+    guard = Path(args.guarded) if args.guarded else None
+    if guard and not guard.exists():
+        p.error(f"no such file: {guard}")
+    return [(None, base, guard)]
+
+
+def main(argv: list[str] | None = None) -> None:
     targets: dict[str, dict] = {}
     labels: list[str] = []
-    for label, base_path, guard_path in TARGETS:
+    specs = _resolve_targets(argv if argv is not None else sys.argv[1:])
+    for label, base_path, guard_path in specs:
         if not base_path.exists():
             print(f"skip {label}: no baseline at {base_path.name}")
             continue
         base = read_results(base_path)
-        guard = read_results(guard_path) if guard_path.exists() else None
+        if not base:
+            print(f"skip {base_path.name}: no results")
+            continue
+        guard = read_results(guard_path) if guard_path and guard_path.exists() else None
+        label = label or base[0].model  # bring-your-own: label from the model under test
         targets[label] = _target_block(base, guard)
         labels.append(label)
+
+    if not labels:
+        raise SystemExit("no targets with results — run the suite first, then pass its .jsonl")
 
     # Cross-model: baseline ASR per family across targets.
     fam_ids = sorted({f["family"] for t in targets.values() for f in t["families"]})

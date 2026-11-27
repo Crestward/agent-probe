@@ -144,7 +144,8 @@ uv run agent-probe run evals/gold.yaml --provider local --guard    # guarded con
 uv run agent-probe run evals/gold.yaml --provider anthropic --model claude-haiku-4-5  # cloud target
 uv run agent-probe delta <baseline>.jsonl <guarded>.jsonl          # Defence Delta table
 uv run agent-probe recommend <run>.jsonl                           # prioritized mitigations
-uv run python dashboard/build.py                      # rebuild the dashboard from snapshots
+uv run python dashboard/build.py                      # rebuild the demo dashboard (author's runs)
+uv run python dashboard/build.py <baseline>.jsonl <guarded>.jsonl  # ...or build it from YOUR run
 ```
 
 The local target uses [Ollama](https://ollama.com) (`ollama pull qwen2.5:7b-instruct-q4_K_M`) —
@@ -169,6 +170,17 @@ agent-probe run evals/gold.yaml --provider openai-compatible \
 Then `agent-probe recommend <run>.jsonl` to get the prioritized fixes for whatever
 your model failed. (A generic one-command `--compare` across providers is on the
 [`BACKLOG.md`](BACKLOG.md); for now run each provider and diff the results.)
+
+**See your own model on the dashboard.** The committed dashboard shows the author's
+qwen + Haiku runs as a demo. To view **your** results instead, run the suite (baseline
+and, optionally, `--guard`) and build the dashboard from the two result files:
+
+```bash
+agent-probe run evals/gold.yaml --provider <yours>            # writes a run-*.jsonl
+agent-probe run evals/gold.yaml --provider <yours> --guard   # writes another
+python dashboard/build.py <your-baseline>.jsonl <your-guarded>.jsonl
+open dashboard/index.html                                    # your scoreboard, deltas, traces
+```
 
 ## Reproducibility
 
