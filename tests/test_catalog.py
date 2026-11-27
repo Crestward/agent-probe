@@ -32,6 +32,16 @@ def test_family_filter() -> None:
     assert all(a.family == "mcp_tool_shadowing" for a in shadow)
 
 
+def test_scope_violation_attacks_pin_a_role() -> None:
+    scope = load_catalog("attacks/gold", family="scope_violation")
+    assert scope
+    for a in scope:
+        # These only make sense with a narrow role to violate, scored on the answer.
+        assert a.system, f"{a.id} must set a scoped role via `system`"
+        assert a.success_when.text_contains
+        assert not a.success_when.tool_called
+
+
 def test_unknown_family_raises(tmp_path) -> None:
     p = tmp_path / "bad.yaml"
     p.write_text(

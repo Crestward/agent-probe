@@ -2,7 +2,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-  /* Layout: sticky console header → scoreboard → defence delta → heatmap → trace explorer (two-pane, stacks on phone). */
+  /* Layout: sticky console header (with target selector) → scoreboard → defence delta → cross-model → heatmap → trace explorer. */
   :root {
     --bg: #f4f5f8; --panel: #ffffff; --panel-2: #eef0f5; --line: #d9dce4;
     --fg: #1a1d26; --muted: #5b6072; --faint: #878da0;
@@ -40,14 +40,13 @@
   .nums { font-variant-numeric: tabular-nums; }
   a { color: var(--accent); }
 
-  /* header */
   header {
     position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
     background: color-mix(in oklab, var(--bg) 86%, transparent);
     backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
   }
   .bar { max-width: 1120px; margin: 0 auto; padding: 12px 16px;
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
   .brand b { font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; }
   .brand .dot { color: var(--danger); }
@@ -56,20 +55,20 @@
   .chip { font-family: var(--mono); font-size: .74rem; color: var(--muted);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
     padding: 4px 10px; white-space: nowrap; }
-  .toggle { font-family: var(--mono); font-size: .74rem; cursor: pointer; color: var(--fg);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+  .toggle, select.toggle { font-family: var(--mono); font-size: .74rem; cursor: pointer; color: var(--fg);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
   .toggle:hover { border-color: var(--accent); }
+  .lbl { font-family: var(--mono); font-size: .68rem; color: var(--faint);
+    text-transform: uppercase; letter-spacing: .08em; }
 
   section { margin-top: 30px; }
   .eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .14em;
     text-transform: uppercase; color: var(--faint); margin-bottom: 12px; display: flex;
     align-items: center; gap: 10px; }
   .eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     box-shadow: var(--shadow); }
 
-  /* scoreboard */
   .hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .tile { padding: 18px 20px; position: relative; overflow: hidden; }
   .tile .k { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em;
@@ -88,22 +87,30 @@
     letter-spacing: .07em; color: var(--muted); }
   .mini .v { font-size: 1.5rem; font-weight: 600; margin-top: 2px; }
 
-  /* delta bars */
   .deltawrap { padding: 20px; }
-  .cmp { display: grid; grid-template-columns: 90px 1fr 66px; align-items: center; gap: 12px;
-    margin: 12px 0; }
-  .cmp .lab { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
-  .track { height: 22px; background: var(--panel-2); border-radius: 6px; overflow: hidden;
-    border: 1px solid var(--line); }
-  .fill { height: 100%; border-radius: 5px 0 0 5px; }
-  .fill.base { background: var(--danger); }
-  .fill.guard { background: var(--safe); }
-  .cmp .val { font-family: var(--mono); font-size: .85rem; text-align: right; font-weight: 600; }
-  .note { font-size: .82rem; color: var(--muted); margin-top: 14px; padding-top: 14px;
-    border-top: 1px solid var(--line); }
+  .cmp { display: grid; grid-template-columns: 120px 1fr 72px; align-items: center; gap: 12px; margin: 11px 0; }
+  .cmp .lab { font-family: var(--mono); font-size: .76rem; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; }
+  .track { height: 20px; background: var(--panel-2); border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .fill { height: 100%; border-radius: 5px 0 0 5px; min-width: 2px; }
+  .fill.base { background: var(--danger); } .fill.guard { background: var(--safe); }
+  .cmp .val { font-family: var(--mono); font-size: .82rem; text-align: right; font-weight: 600; line-height: 1.25; }
+  .note { font-size: .82rem; color: var(--muted); margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
   .note b { color: var(--fg); font-weight: 600; }
 
-  /* heatmap table */
+  /* cross-model grouped bars */
+  .xrow { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 12px; margin: 10px 0; }
+  .xrow .lab { font-family: var(--mono); font-size: .75rem; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; }
+  .xbars { display: flex; flex-direction: column; gap: 5px; }
+  .xbar { display: grid; grid-template-columns: 1fr 52px; align-items: center; gap: 8px; }
+  .xtrack { height: 15px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .xfill { height: 100%; min-width: 2px; }
+  .xbar .xv { font-family: var(--mono); font-size: .74rem; text-align: right; }
+  .xlegend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .78rem; color: var(--muted); margin-top: 6px; }
+  .xlegend span { display: inline-flex; align-items: center; gap: 6px; }
+  .xlegend i { width: 11px; height: 11px; border-radius: 3px; }
+
   .tablewrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 560px; }
   th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
@@ -113,17 +120,14 @@
   td.owasp-tag { font-family: var(--mono); font-size: .76rem; color: var(--muted); }
   .asrcell { font-family: var(--mono); font-weight: 600; text-align: center; border-radius: 6px;
     padding: 5px 8px; min-width: 56px; display: inline-block; }
-  .mixbar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; min-width: 90px;
-    border: 1px solid var(--line); }
+  .mixbar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; min-width: 90px; border: 1px solid var(--line); }
   .mixbar i { display: block; height: 100%; }
   .mx-success { background: var(--danger); } .mx-refusal { background: var(--safe); }
   .mx-clean_completion { background: var(--clean); } .mx-error { background: var(--warn); }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .76rem; color: var(--muted);
-    margin-top: 12px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .76rem; color: var(--muted); margin-top: 12px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
-  /* trace explorer */
   .explorer { display: grid; grid-template-columns: 340px 1fr; gap: 14px; align-items: start; }
   .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .filters input, .filters select { font-family: var(--mono); font-size: .76rem; color: var(--fg);
@@ -154,37 +158,28 @@
   .detail .dh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .detail .dh .id { font-family: var(--mono); font-weight: 700; font-size: 1rem; }
   .meta-grid { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
-    margin: 14px 0 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 14px 0 6px; }
   .seg button { font-family: var(--mono); font-size: .76rem; padding: 6px 14px; cursor: pointer;
     background: var(--panel); color: var(--muted); border: none; }
   .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-  .task { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; font-size: .85rem; margin: 10px 0; }
-  .task .tl { font-family: var(--mono); font-size: .68rem; text-transform: uppercase;
-    letter-spacing: .07em; color: var(--faint); display: block; margin-bottom: 4px; }
+  .seg button:disabled { opacity: .4; cursor: not-allowed; }
+  .task { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: .85rem; margin: 10px 0; }
+  .task .tl { font-family: var(--mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); display: block; margin-bottom: 4px; }
   .step { border-left: 2px solid var(--line); padding: 2px 0 2px 14px; margin: 10px 0; position: relative; }
-  .step::before { content: ""; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px;
-    border-radius: 50%; background: var(--accent); }
+  .step::before { content: ""; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
   .step.blocked::before { background: var(--safe); }
   .step .nm { font-family: var(--mono); font-weight: 600; font-size: .84rem; }
   .step .blk { font-family: var(--mono); font-size: .64rem; color: var(--safe); font-weight: 600;
-    border: 1px solid color-mix(in oklab, var(--safe) 40%, transparent); border-radius: 999px;
-    padding: 1px 7px; margin-left: 8px; }
-  .kv { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-top: 3px;
-    white-space: pre-wrap; word-break: break-word; }
+    border: 1px solid color-mix(in oklab, var(--safe) 40%, transparent); border-radius: 999px; padding: 1px 7px; margin-left: 8px; }
+  .kv { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
   .kv b { color: var(--fg); font-weight: 600; }
   .answer { margin-top: 14px; }
-  .answer .tl { font-family: var(--mono); font-size: .68rem; text-transform: uppercase;
-    letter-spacing: .07em; color: var(--faint); }
-  .answer p { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; font-size: .86rem; margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
+  .answer .tl { font-family: var(--mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); }
+  .answer p { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: .86rem; margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; }
   .verdict { margin-top: 12px; font-size: .82rem; color: var(--muted); }
-  .empty { color: var(--faint); font-size: .9rem; display: grid; place-items: center; min-height: 260px;
-    text-align: center; }
+  .empty { color: var(--faint); font-size: .9rem; display: grid; place-items: center; min-height: 260px; text-align: center; }
 
-  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line);
-    font-size: .78rem; color: var(--faint); }
+  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--faint); }
   footer code { font-family: var(--mono); background: var(--panel-2); padding: 1px 6px; border-radius: 4px; }
 
   @media (max-width: 880px) {
@@ -192,6 +187,8 @@
     .ministats { grid-template-columns: repeat(2, 1fr); }
     .explorer { grid-template-columns: 1fr; }
     .list { max-height: 320px; }
+    .xrow { grid-template-columns: 1fr; gap: 4px; }
+    .cmp { grid-template-columns: 96px 1fr 64px; }
   }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -203,7 +200,8 @@
       <span>MCP / agent red&#8209;team &amp; guardrail benchmark</span>
     </div>
     <div class="spacer"></div>
-    <span class="chip" id="modelchip">model</span>
+    <span class="lbl">target</span>
+    <select class="toggle" id="targetSel" aria-label="target model"></select>
     <button class="toggle" id="themeBtn" type="button">theme</button>
   </div>
 </header>
@@ -212,32 +210,28 @@
   <section>
     <div class="eyebrow">Scoreboard &middot; same suite, undefended vs guarded</div>
     <div class="hero">
-      <div class="panel tile rail-danger">
-        <div class="k">Baseline ASR</div>
-        <div class="v danger nums" id="baseAsr">–</div>
-        <div class="s">attack success, no guardrail</div>
-      </div>
-      <div class="panel tile rail-safe">
-        <div class="k">Guarded ASR</div>
-        <div class="v safe nums" id="guardAsr">–</div>
-        <div class="s">with the I/O guardrail on</div>
-      </div>
-      <div class="panel tile rail-accent">
-        <div class="k">Defence Delta</div>
-        <div class="v accent nums" id="delta">–</div>
-        <div class="s" id="deltaSub">points of ASR removed</div>
-      </div>
+      <div class="panel tile rail-danger"><div class="k">Baseline ASR</div>
+        <div class="v danger nums" id="baseAsr">–</div><div class="s">attack success, no guardrail</div></div>
+      <div class="panel tile rail-safe"><div class="k">Guarded ASR</div>
+        <div class="v safe nums" id="guardAsr">–</div><div class="s">with the I/O guardrail on</div></div>
+      <div class="panel tile rail-accent"><div class="k">Defence Delta</div>
+        <div class="v accent nums" id="delta">–</div><div class="s" id="deltaSub">points of ASR removed</div></div>
     </div>
     <div class="ministats" id="ministats"></div>
   </section>
 
   <section>
-    <div class="eyebrow">Defence Delta &middot; ASR by attack family</div>
+    <div class="eyebrow">Defence Delta &middot; ASR by attack family (selected target)</div>
     <div class="panel deltawrap" id="deltaBars"></div>
   </section>
 
+  <section id="crossSec">
+    <div class="eyebrow">Cross-model &middot; baseline ASR on identical attacks</div>
+    <div class="panel deltawrap" id="cross"></div>
+  </section>
+
   <section>
-    <div class="eyebrow">Outcome heatmap &middot; families &times; outcome, coloured by ASR</div>
+    <div class="eyebrow">Outcome heatmap &middot; families &times; outcome, coloured by ASR (selected target)</div>
     <div class="panel tablewrap">
       <table id="heat"><thead><tr>
         <th>Family</th><th>OWASP</th><th>n</th>
@@ -275,10 +269,10 @@
   </section>
 
   <footer>
-    Target: <code id="footModel">qwen2.5</code> (local, synthetic). Every number is computed from
-    committed result snapshots by <code>dashboard/build.py</code>. Cross-model comparison
-    (Claude / GPT / DeepSeek) is deferred. 0% guarded is measured against this fixed,
-    non-adaptive suite — the egress allow-list does the heavy lifting.
+    Targets are local/synthetic agents. Every number is computed from committed result
+    snapshots by <code>dashboard/build.py</code> through the same scoring code as the CLI.
+    The guardrail defends exfiltration (egress allow-list + injection screening); it does
+    <b>not</b> address scope/purview violation — a deliberate, visible blind spot.
   </footer>
 </main>
 
@@ -286,10 +280,11 @@
 <script>
 (function () {
   "use strict";
-  var pct = function (x) { return (x * 100).toFixed(1) + "%"; };
+  var pct = function (x) { return x == null ? "n/a" : (x * 100).toFixed(1) + "%"; };
   var el = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+  var MODEL_COLORS = ["var(--accent)", "var(--guard)", "var(--warn)", "var(--clean)"];
 
   /* theme */
   var root = document.documentElement, tb = el("themeBtn");
@@ -302,69 +297,105 @@
   tb.textContent = curDark() ? "◐ dark" : "◑ light";
   tb.addEventListener("click", function () { setTheme(!curDark()); });
 
-  /* scoreboard */
-  var sb = DATA.scoreboard;
-  el("modelchip").textContent = DATA.meta.model;
-  el("footModel").textContent = DATA.meta.model;
-  el("baseAsr").textContent = pct(sb.baseline.asr);
-  el("guardAsr").textContent = pct(sb.guarded.asr);
-  el("delta").textContent = "−" + sb.delta_pts + "pts";
-  el("deltaSub").textContent = pct(sb.baseline.asr) + " → " + pct(sb.guarded.asr) + " on " + DATA.meta.n + " attacks";
+  /* target selector */
+  var labels = DATA.meta.labels, current = labels[0], selected = null, cfg = "base";
+  var sel = el("targetSel");
+  labels.forEach(function (l) { var o = document.createElement("option"); o.value = l; o.textContent = l; sel.appendChild(o); });
+  sel.value = current;
+  sel.addEventListener("change", function () { current = sel.value; cfg = "base"; renderTarget(); });
 
-  var ms = [
-    ["Refusal rate", pct(sb.baseline.rr)],
-    ["Clean completion", pct(sb.baseline.clean)],
-    ["Tool-hijack rate", pct(sb.baseline.hijack)],
-    ["Harm-weighted ASR", pct(sb.baseline.harm)]
-  ];
-  el("ministats").innerHTML = ms.map(function (m) {
-    return '<div class="panel mini"><div class="k">' + m[0] + '</div><div class="v nums">' + m[1] + '</div></div>';
-  }).join("");
+  function T() { return DATA.targets[current]; }
 
-  /* delta bars per family */
-  var fams = DATA.families.slice().sort(function (a, b) { return b.base_asr - a.base_asr; });
-  el("deltaBars").innerHTML = fams.map(function (f) {
-    return '<div class="cmp"><div class="lab">' + esc(f.family.replace(/_/g, " ")) + '</div>' +
-      '<div><div class="track"><div class="fill base" style="width:' + (f.base_asr * 100) + '%"></div></div>' +
-      '<div class="track" style="margin-top:4px"><div class="fill guard" style="width:' + (f.guard_asr * 100) + '%"></div></div></div>' +
-      '<div class="val">' + pct(f.base_asr) + '<br><span style="color:var(--safe)">' + pct(f.guard_asr) + '</span></div></div>';
-  }).join("") +
-    '<div class="note"><b>Red</b> = baseline ASR, <b>green</b> = guarded ASR. The guardrail intervened on ' +
-    Math.round(sb.guard_pass_rate * DATA.meta.n < DATA.meta.n ? (DATA.meta.n - sb.guard_pass_rate * DATA.meta.n) : 0) +
-    ' of ' + DATA.meta.n + ' probes; ASR behind the filter was ' + pct(sb.asr_behind_filter) +
-    ' — what passed the filter, the model resisted on its own.</div>';
-
-  /* heatmap */
-  function asrColor(a) {
-    return "color-mix(in oklab, var(--safe), var(--danger) " + Math.round(a * 100) + "%)";
+  function renderScoreboard() {
+    var sb = T().scoreboard, b = sb.baseline, g = sb.guarded;
+    el("baseAsr").textContent = pct(b.asr);
+    el("guardAsr").textContent = g ? pct(g.asr) : "n/a";
+    el("delta").textContent = (sb.delta_pts != null) ? "−" + sb.delta_pts + "pts" : "–";
+    el("deltaSub").textContent = g
+      ? pct(b.asr) + " → " + pct(g.asr) + " on " + b.n_total + " attacks"
+      : "no guarded run for this target";
+    var ms = [["Refusal rate", pct(b.rr)], ["Clean completion", pct(b.clean)],
+      ["Tool-hijack rate", pct(b.hijack)], ["Harm-weighted ASR", pct(b.harm)]];
+    el("ministats").innerHTML = ms.map(function (m) {
+      return '<div class="panel mini"><div class="k">' + m[0] + '</div><div class="v nums">' + m[1] + '</div></div>';
+    }).join("");
   }
-  function asrText(a) { return a > 0.45 ? "#fff" : "var(--fg)"; }
+
+  function renderDeltaBars() {
+    var fams = T().families.slice().sort(function (a, b) { return b.base_asr - a.base_asr; });
+    var hasGuard = !!T().scoreboard.guarded;
+    el("deltaBars").innerHTML = fams.map(function (f) {
+      var gbar = (f.guard_asr != null)
+        ? '<div class="track" style="margin-top:4px"><div class="fill guard" style="width:' + (f.guard_asr * 100) + '%"></div></div>' : "";
+      var gval = (f.guard_asr != null) ? '<br><span style="color:var(--safe)">' + pct(f.guard_asr) + '</span>' : "";
+      return '<div class="cmp"><div class="lab">' + esc(f.family.replace(/_/g, " ")) + '</div>' +
+        '<div><div class="track"><div class="fill base" style="width:' + (f.base_asr * 100) + '%"></div></div>' + gbar + '</div>' +
+        '<div class="val">' + pct(f.base_asr) + gval + '</div></div>';
+    }).join("") + (hasGuard
+      ? '<div class="note"><b>Red</b> = baseline ASR, <b>green</b> = guarded ASR. ASR behind the filter: ' +
+        pct(T().scoreboard.asr_behind_filter) + ' — what the guardrail let through, the model resisted on its own. ' +
+        '<b>scope&nbsp;violation stays red under the guard</b> (it defends exfiltration, not role abuse).'
+      : '<div class="note">No guarded run loaded for this target — baseline ASR only.</div>');
+  }
+
+  function renderCross() {
+    var fams = DATA.cross.families.slice().sort(function (a, b) {
+      var am = Math.max.apply(null, labels.map(function (l) { return a.asr[l] || 0; }));
+      var bm = Math.max.apply(null, labels.map(function (l) { return b.asr[l] || 0; }));
+      return bm - am;
+    });
+    el("cross").innerHTML = fams.map(function (f) {
+      var bars = labels.map(function (l, i) {
+        var v = f.asr[l];
+        return '<div class="xbar"><div class="xtrack"><div class="xfill" style="width:' +
+          ((v || 0) * 100) + '%;background:' + MODEL_COLORS[i % MODEL_COLORS.length] + '"></div></div>' +
+          '<div class="xv">' + pct(v) + '</div></div>';
+      }).join("");
+      return '<div class="xrow"><div class="lab">' + esc(f.family.replace(/_/g, " ")) +
+        '<br><span style="color:var(--faint);font-size:.68rem">' + esc(f.owasp) + '</span></div>' +
+        '<div class="xbars">' + bars + '</div></div>';
+    }).join("") +
+      '<div class="xlegend">' + labels.map(function (l, i) {
+        return '<span><i style="background:' + MODEL_COLORS[i % MODEL_COLORS.length] + '"></i>' + esc(l) +
+          ' &middot; overall ' + pct(DATA.cross.overall[l].base_asr) + '</span>';
+      }).join("") + '</div>';
+  }
+
+  function asrColor(a) { return "color-mix(in oklab, var(--safe), var(--danger) " + Math.round((a || 0) * 100) + "%)"; }
+  function asrText(a) { return (a || 0) > 0.45 ? "#fff" : "var(--fg)"; }
   function mix(o) {
     var total = o.success + o.refusal + o.clean_completion + o.error || 1;
     return ["success", "refusal", "clean_completion", "error"].map(function (k) {
       return o[k] ? '<i class="mx-' + k + '" style="width:' + (o[k] / total * 100) + '%" title="' + k + ': ' + o[k] + '"></i>' : "";
     }).join("");
   }
-  var tb2 = document.querySelector("#heat tbody");
-  tb2.innerHTML = fams.map(function (f) {
-    return "<tr><td class='fam'>" + esc(f.family.replace(/_/g, " ")) + "</td>" +
-      "<td class='owasp-tag'>" + esc(f.owasp) + "</td><td class='nums'>" + f.n + "</td>" +
-      "<td><span class='asrcell' style='background:" + asrColor(f.base_asr) + ";color:" + asrText(f.base_asr) + "'>" + pct(f.base_asr) + "</span></td>" +
-      "<td><span class='asrcell' style='background:" + asrColor(f.guard_asr) + ";color:" + asrText(f.guard_asr) + "'>" + pct(f.guard_asr) + "</span></td>" +
-      "<td><div class='mixbar'>" + mix(f.base_outcomes) + "</div></td></tr>";
-  }).join("");
+  function renderHeat() {
+    var fams = T().families.slice().sort(function (a, b) { return b.base_asr - a.base_asr; });
+    document.querySelector("#heat tbody").innerHTML = fams.map(function (f) {
+      var gc = (f.guard_asr != null)
+        ? "<span class='asrcell' style='background:" + asrColor(f.guard_asr) + ";color:" + asrText(f.guard_asr) + "'>" + pct(f.guard_asr) + "</span>"
+        : "<span class='mono' style='color:var(--faint)'>n/a</span>";
+      return "<tr><td class='fam'>" + esc(f.family.replace(/_/g, " ")) + "</td>" +
+        "<td class='owasp-tag'>" + esc(f.owasp) + "</td><td class='nums'>" + f.n + "</td>" +
+        "<td><span class='asrcell' style='background:" + asrColor(f.base_asr) + ";color:" + asrText(f.base_asr) + "'>" + pct(f.base_asr) + "</span></td>" +
+        "<td>" + gc + "</td><td><div class='mixbar'>" + mix(f.base_outcomes) + "</div></td></tr>";
+    }).join("");
+  }
 
   /* trace explorer */
   var famSel = el("famFilter");
-  DATA.families.forEach(function (f) {
-    var o = document.createElement("option"); o.value = f.family;
-    o.textContent = f.family.replace(/_/g, " "); famSel.appendChild(o);
-  });
-  var selected = null, cfg = "base";
-
+  function rebuildFamFilter() {
+    famSel.innerHTML = '<option value="">all families</option>';
+    var seen = {};
+    T().probes.forEach(function (p) {
+      if (!seen[p.family]) { seen[p.family] = 1;
+        var o = document.createElement("option"); o.value = p.family;
+        o.textContent = p.family.replace(/_/g, " "); famSel.appendChild(o); }
+    });
+  }
   function listData() {
     var q = el("search").value.toLowerCase(), ff = famSel.value, of = el("outFilter").value;
-    return DATA.probes.filter(function (p) {
+    return T().probes.filter(function (p) {
       if (ff && p.family !== ff) return false;
       if (of && p.base.outcome !== of) return false;
       if (q && (p.id + " " + p.family).toLowerCase().indexOf(q) < 0) return false;
@@ -382,14 +413,14 @@
         '<span class="rfam">' + esc(p.family.replace(/_/g, " ")) + " &middot; " + esc(p.owasp) + '</span></button>';
     }).join("") : '<div class="empty" style="min-height:120px">no probes match</div>';
     Array.prototype.forEach.call(el("list").querySelectorAll(".row"), function (b) {
-      b.addEventListener("click", function () { select(b.getAttribute("data-id")); });
+      b.addEventListener("click", function () { selected = b.getAttribute("data-id"); renderList(); renderDetail(); });
     });
   }
-  function trace(p) { return cfg === "guard" && p.guard ? p.guard : p.base; }
+  function probe(id) { return T().probes.find(function (x) { return x.id === id; }); }
   function renderDetail() {
-    var p = DATA.probes.find(function (x) { return x.id === selected; });
+    var p = probe(selected);
     if (!p) { el("detail").innerHTML = '<div class="empty">Select a probe to inspect its trace.</div>'; return; }
-    var t = trace(p), tr = t.trace || {};
+    var t = (cfg === "guard" && p.guard) ? p.guard : p.base, tr = t.trace || {};
     var calls = (tr.tool_calls || []).map(function (c) {
       var args = Object.keys(c.arguments || {}).map(function (k) {
         return "<b>" + esc(k) + "</b>=" + esc(JSON.stringify(c.arguments[k])); }).join("  ");
@@ -403,10 +434,8 @@
       '<div class="dh"><span class="id">' + esc(p.id) + '</span>' + pill(t.outcome) +
       (t.hijack ? ' <span class="pill success">tool&#8209;hijack</span>' : "") + '</div>' +
       '<div class="meta-grid"><span class="chip">' + esc(p.family.replace(/_/g, " ")) + '</span>' +
-      '<span class="chip">' + esc(p.owasp) + '</span>' +
-      '<span class="chip">' + esc(p.atlas || "") + '</span>' +
-      '<span class="chip">sev: ' + esc(p.severity) + '</span>' +
-      (p.technique ? '<span class="chip">' + esc(p.technique) + '</span>' : "") + '</div>' +
+      '<span class="chip">' + esc(p.owasp) + '</span><span class="chip">' + esc(p.atlas || "") + '</span>' +
+      '<span class="chip">sev: ' + esc(p.severity) + '</span></div>' +
       '<div class="seg" role="group">' +
       '<button data-cfg="base" aria-pressed="' + (cfg === "base") + '">baseline</button>' +
       '<button data-cfg="guard" aria-pressed="' + (cfg === "guard") + '"' + (hasGuard ? "" : " disabled") + '>guarded</button></div>' +
@@ -420,11 +449,16 @@
       b.addEventListener("click", function () { cfg = b.getAttribute("data-cfg"); renderDetail(); });
     });
   }
-  function select(id) { selected = id; renderList(); renderDetail(); }
 
-  ["search", "famFilter", "outFilter"].forEach(function (id) {
-    el(id).addEventListener("input", renderList);
-  });
-  renderList();
+  function renderTarget() {
+    renderScoreboard(); renderDeltaBars(); renderHeat();
+    rebuildFamFilter();
+    if (!probe(selected)) selected = null;
+    renderList(); renderDetail();
+  }
+
+  ["search", "famFilter", "outFilter"].forEach(function (id) { el(id).addEventListener("input", renderList); });
+  renderCross();
+  renderTarget();
 })();
 </script>

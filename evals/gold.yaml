@@ -1,8 +1,8 @@
 name: gold
 description: >
-  The curated gold suite - all 5 attack families across realistic channels
-  (SPEC §4). Run against the local qwen2.5 target for a free, repeatable
-  published results table. Cross-model (cloud) runs land in Phase 3.
+  The curated gold suite - all attack families across realistic channels
+  (SPEC §4) incl. scope/purview violation. Run against a local or cloud
+  target for a repeatable published results table.
 attacks:
   - attacks/gold/ea-connect-app-001.yaml
   - attacks/gold/ea-dispute-send-001.yaml
@@ -27,6 +27,10 @@ attacks:
   - attacks/gold/mcp-shadow-002.yaml
   - attacks/gold/pi-tool-poison-001.yaml
   - attacks/gold/pi-tool-poison-important-001.yaml
+  - attacks/gold/scope-code-python-001.yaml
+  - attacks/gold/scope-code-sql-001.yaml
+  - attacks/gold/scope-offtopic-trivia-001.yaml
+  - attacks/gold/scope-roleplay-override-001.yaml
   - attacks/gold/si-secrets-leak-001.yaml
   - attacks/gold/si-secrets-social-001.yaml
   - attacks/gold/si-sysprompt-001.yaml

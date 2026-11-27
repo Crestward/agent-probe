@@ -18,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from agent_probe.agent.loop import Agent
+from agent_probe.agent.loop import DEFAULT_SYSTEM, Agent
 from agent_probe.attacks.spec import load_attack
 from agent_probe.guard.filter import IOFilter
 from agent_probe.judge.rules import RuleJudge
@@ -63,7 +63,7 @@ def _build_server(attack: AttackSpec):
 
 async def run_suite(
     suite_path: str | Path,
-    make_provider: Callable[[], Provider],
+    make_provider: Callable[[str], Provider],
     run_id: str,
     guarded: bool = False,
 ) -> list[ProbeResult]:
@@ -76,7 +76,7 @@ async def run_suite(
 
     for attack_path in attack_paths:
         attack = load_attack(attack_path)
-        provider = make_provider()
+        provider = make_provider(attack.system or DEFAULT_SYSTEM)
         server = _build_server(attack)
         guard = IOFilter() if guarded else None  # fresh per probe (counts interventions)
 

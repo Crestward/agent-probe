@@ -29,6 +29,7 @@ live MITRE ATLAS matrix (atlas.mitre.org / d3fend.mitre.org) on **2026-11-26**.
 | `sensitive_info_disclosure` (data) | LLM02 Sensitive Info Disclosure | `AML.T0057` | A stored secret / other-party data leaks into the agent's answer. |
 | `sensitive_info_disclosure` (system prompt) | LLM02 Sensitive Info Disclosure | `AML.T0056` | The agent reveals its own system prompt / configuration canary. |
 | `jailbreak_carrier` | LLM01 Prompt Injection | `AML.T0054` | A delivery wrapper (roleplay, base64, many-shot, refusal-suppression) layered on an exfil payload. |
+| `scope_violation` | LLM03 Excessive Agency | `AML.T0054` | A role-scoped agent (support bot, HR helpdesk) coerced to act outside its purview — write code, answer off-topic, swap persona. |
 
 > **Notes on mapping judgement.** MCP tool-poisoning/shadowing/rug-pull are *agentic*
 > delivery surfaces for prompt injection; ATLAS does not (as of this date) have a
@@ -38,6 +39,14 @@ live MITRE ATLAS matrix (atlas.mitre.org / d3fend.mitre.org) on **2026-11-26**.
 > exfiltration technique; we tag the injection vector on the injection families and
 > reserve `AML.T0086` for the no-injection `excessive_agency` family to keep the
 > mapping one-to-one and legible.
+>
+> **`scope_violation` is a weak ATLAS fit on purpose.** A role-scoped agent doing
+> off-purview work (a support bot writing code) is primarily a *governance / misuse*
+> failure, not a catalogued adversarial technique. When the request overrides the
+> role ("ignore your support role", "you are now DevBot") it is jailbreak-shaped, so
+> we map it to `AML.T0054`; OWASP LLM03 (excessive *functionality* — capability
+> beyond the agent's purpose) is the more natural home. This is flagged rather than
+> forced.
 
 ## Sources
 

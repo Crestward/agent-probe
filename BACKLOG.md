@@ -9,8 +9,12 @@ Park ideas here instead of expanding v1.0. See the **Scope Freeze** in `SPEC.md`
 - **Persona / coercive-control social-engineering class** (2611.08226). Multi-turn persona jailbreaks (role-play, authority, incremental compliance). v1.0 is single-turn-ish; multi-turn conversation-state attacks are v2.
 - **Bulk external-corpus import** (AdvBench / JailbreakBench / MaliciousInstruct / HarmBench). Phase 2 represents seed→carrier *structurally* via the mutator pipeline (`attacks/generator.py`) but keeps the gold run hand-authored. Wiring the full corpora as intent sources — thousands of rows wrapped into channel payloads — would balloon the published run and dilute the curated signal; promote only after the Defence Delta (Phase 3) exists to make bulk ASR meaningful.
 
-## Cross-model comparison (deferred by scope decision 2026-11-26)
-- **OpenAI + DeepSeek providers + `--compare` + cross-model report** (was Phase 3). The adapters are designed (`providers/openai_compatible.py` already drives the OpenAI-compatible wire format for the local target), so adding `providers/openai.py` / `providers/deepseek.py` is small — but it is the only part of the project that spends cloud credits. User chose "qwen is enough" for now. Promote when a Claude-vs-GPT-vs-DeepSeek safety contrast is worth the spend (strong blog angle: Western vs Chinese lab).
+## Cross-model comparison (partly done)
+- **Done:** qwen2.5:7b vs **Claude Haiku 4.5** (2026-11-27), via the existing Anthropic provider. Real finding in the README/dashboard.
+- **Still parked:** **OpenAI + DeepSeek providers + a generic `--compare` flag.** `providers/openai_compatible.py` already drives the OpenAI-compatible wire format, so `providers/openai.py` / `providers/deepseek.py` are small — but they are the remaining cloud-spend items. Promote when a Claude-vs-GPT-vs-DeepSeek contrast is worth the spend (Western-vs-Chinese-lab blog angle).
+
+## Scope-adherence guardrail (new, from the Haiku finding)
+- The v1.0 I/O guardrail defends **exfiltration**, so `scope_violation` (a support bot coerced to write code / answer off-topic / swap persona) survives it on *both* models — the dashboard's visible blind spot. A second, orthogonal guardrail — a **role/scope classifier** that checks each response against the agent's declared purview before it returns — would close it. Natural "guardrail #2" once v1.0 ships; pairs with the guardrail-shootout item below.
 
 ## Defence / guardrail (v2+)
 - **Adaptive / self-evolving guardrail** (GuardrailAgent, 2611.09734). Multi-agent input+output detector that crawls new jailbreaks and promotes missed attacks via a feedback loop (~90 examples → 0.80 detection). Reverse it as a red-team target: test whether agent-probe's attacks survive an *adapting* defender. Great story, big build. v2.

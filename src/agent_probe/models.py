@@ -144,6 +144,7 @@ KNOWN_FAMILIES: frozenset[str] = frozenset(
         "excessive_agency",
         "sensitive_info_disclosure",
         "jailbreak_carrier",
+        "scope_violation",
     }
 )
 
@@ -158,6 +159,7 @@ class AttackSpec(BaseModel):
     channel: str
     severity: str = "medium"
     technique: str | None = None  # e.g. "important_instructions", "naive" — for reporting
+    system: str | None = None  # override the victim agent's role (for scope_violation)
     task: str
     payload: str | None = None
     success_when: SuccessCondition = Field(default_factory=SuccessCondition)

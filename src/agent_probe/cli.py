@@ -99,8 +99,8 @@ def run(
     settings = load_settings()
     run_id = new_run_id()
 
-    def make_provider():
-        return get_provider(provider, settings, system=DEFAULT_SYSTEM, model=model)
+    def make_provider(system: str = DEFAULT_SYSTEM):
+        return get_provider(provider, settings, system=system, model=model)
 
     try:
         results = asyncio.run(run_suite(suite, make_provider, run_id, guarded=guard))
